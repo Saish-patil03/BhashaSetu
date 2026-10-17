@@ -1,0 +1,33 @@
+{
+  "name": "bhashasetu-kannada-ocr",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "postinstall": "node -e \"try { require('fs').writeFileSync('node_modules/rollup/dist/native.js', 'module.exports = require(\\\"@rollup/wasm-node/dist/native.js\\\");'); } catch(e){}\""
+  },
+  "dependencies": {
+    "@rollup/wasm-node": "^4.64.7",
+    "canvas-confetti": "^1.9.3",
+    "jspdf": "^2.5.2",
+    "lucide-react": "^0.453.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "isomorphic-git": "^1.44.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
