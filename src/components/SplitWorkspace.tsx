@@ -8,6 +8,7 @@ import { AudioPlayerBar } from './AudioPlayerBar';
 import { ImageFilterType } from '../services/imageProcessingService';
 import { OCREngineModeSelector } from './extensions/OCREngineModeSelector';
 import { PipelineTelemetryDashboard } from './extensions/PipelineTelemetryDashboard';
+import { CitizenVoiceAssistant } from './extensions/CitizenVoiceAssistant';
 import { LayoutBlockId, parseDocumentIntoSyncBlocks } from '../services/layoutSyncService';
 
 interface SplitWorkspaceProps {
@@ -189,6 +190,17 @@ export const SplitWorkspace: React.FC<SplitWorkspaceProps> = ({
           doc={doc}
           lang={lang}
           isProcessing={isProcessing}
+        />
+      )}
+
+      {/* Floating Spoken Kannada Voice Assistant ("ಧ್ವನಿ ಮಿತ್ರ") */}
+      {doc && !isProcessing && (
+        <CitizenVoiceAssistant
+          doc={doc}
+          lang={lang}
+          apiKey={apiKey}
+          modelName={modelName}
+          onUpdateChatHistory={onUpdateChatHistory}
         />
       )}
     </div>
