@@ -1,0 +1,19 @@
+{
+  "name": "BhashaSetu - ಭಾಷಾಸೇತು (Kannada Document AI & OCR)",
+  "short_name": "BhashaSetu",
+  "description": "High-fidelity Kannada Document AI & OCR with NudiMitra Voice Companion for Karnataka citizens and farmers.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAFA",
+  "theme_color": "#18181B",
+  "lang": "kn",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

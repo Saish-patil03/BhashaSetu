@@ -12,11 +12,13 @@ import {
   CheckCircle2, 
   Quote, 
   ArrowRight,
-  Gauge
+  Gauge,
+  Share2
 } from 'lucide-react';
 import { DigitizedDocument, UILanguage, QAMessage } from '../../types';
 import { askDocumentQuestion } from '../../services/ocrService';
 import { speechService } from '../../services/speechService';
+import { WhatsAppShareModal } from './WhatsAppShareModal';
 
 interface CitizenVoiceAssistantProps {
   doc: DigitizedDocument;
@@ -43,6 +45,7 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
   const [groundedSnippet, setGroundedSnippet] = useState<string | undefined>(undefined);
   const [speechRate, setSpeechRate] = useState<number>(0.9); // Slightly slower (0.9x) for rural citizens
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const isKn = lang === 'kn';
@@ -305,10 +308,10 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
 
           <div className="text-left font-kannada">
             <div className="text-xs font-bold tracking-tight">
-              {isKn ? 'ಮಾತನಾಡಿ ಕೇಳಿ' : 'Ask by Voice'}
+              {isKn ? 'ನುಡಿ ಮಿತ್ರ' : 'NudiMitra'}
             </div>
             <div className="text-[10px] text-zinc-400 leading-none">
-              {isKn ? 'ಕನ್ನಡ ಧ್ವನಿ ಮಿತ್ರ' : 'Kannada Voice AI'}
+              {isKn ? 'ಕನ್ನಡ ಧ್ವನಿ ಸಹಾಯಕ' : 'Kannada Voice AI'}
             </div>
           </div>
         </button>
@@ -326,15 +329,15 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-sm sm:text-base text-zinc-900 font-kannada flex items-center gap-2">
-                    {isKn ? 'ಭಾಷಾಸೇತು ಧ್ವನಿ ಮಿತ್ರ' : 'BhashaSetu Voice Companion'}
+                    {isKn ? 'ಭಾಷಾಸೇತು ನುಡಿ ಮಿತ್ರ' : 'BhashaSetu NudiMitra'}
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
                       ಕನ್ನಡ kn-IN
                     </span>
                   </h3>
                   <p className="text-[11px] text-zinc-500 font-kannada">
                     {isKn
-                      ? 'ದಾಖಲೆಯ ಬಗ್ಗೆ ನೇರವಾಗಿ ಮಾತನಾಡಿ ಪ್ರಶ್ನೆ ಕೇಳಿ - ಧ್ವನಿಯಲ್ಲೇ ಉತ್ತರ ಪಡೆಯಿರಿ'
-                      : 'Speak in Kannada about your document - AI responds aloud in natural speech'}
+                      ? 'ದಾಖಲೆಯ ಬಗ್ಗೆ ನೇರವಾಗಿ ಮಾತನಾಡಿ ಪ್ರಶ್ನೆ ಕೇಳಿ - ನುಡಿ ಮಿತ್ರ ಧ್ವನಿಯಲ್ಲೇ ಉತ್ತರಿಸುತ್ತದೆ'
+                      : 'Speak in Kannada about your document - NudiMitra responds aloud in natural speech'}
                   </p>
                 </div>
               </div>
@@ -394,7 +397,7 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
                 <div className="space-y-1">
                   <div className="text-sm font-semibold text-zinc-800 font-kannada">
                     {isProcessing
-                      ? (isKn ? 'ದಾಖಲೆಯನ್ನು ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...' : 'Analyzing document with Gemini AI...')
+                      ? (isKn ? 'ದಾಖಲೆಯನ್ನು ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...' : 'Analyzing document with BhashaSetu AI...')
                       : isListening
                       ? (isKn ? 'ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದ್ದೇವೆ... ಮಾತನಾಡಿ' : 'Listening... Speak in Kannada now')
                       : isSpeaking
@@ -433,7 +436,7 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-emerald-700" />
                       <span className="text-xs font-bold text-emerald-900 font-kannada">
-                        {isKn ? 'ದಾಖಲೆಯ ಉತ್ತರ (AI Spoken Answer):' : 'AI Verified Answer:'}
+                        {isKn ? 'ನುಡಿ ಮಿತ್ರ ನೀಡಿದ ಉತ್ತರ:' : 'NudiMitra Verified Answer:'}
                       </span>
                     </div>
 
@@ -458,6 +461,17 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
                           <span className="font-kannada text-[11px]">{isKn ? 'ಪುನಃ ಆಲಿಸಿ' : 'Replay Voice'}</span>
                         </button>
                       )}
+
+                      {/* 1-Click WhatsApp Share of Voice Answer */}
+                      <button
+                        type="button"
+                        onClick={() => setIsWhatsAppOpen(true)}
+                        className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                        title={isKn ? 'ಈ ಉತ್ತರವನ್ನು ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ' : 'Share this answer on WhatsApp'}
+                      >
+                        <Share2 className="w-3 h-3" />
+                        <span className="font-kannada text-[11px]">{isKn ? 'ವಾಟ್ಸಾಪ್' : 'WhatsApp'}</span>
+                      </button>
                     </div>
                   </div>
 
@@ -486,7 +500,7 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
               {/* 3 One-Tap Citizen Quick Questions */}
               <div className="space-y-2 pt-1 border-t border-zinc-100">
                 <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider font-kannada">
-                  {isKn ? 'ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು (1-ಕ್ಲಿಕ್‌ನಲ್ಲಿ ಕೇಳಿ):' : 'Suggested Questions (1-Click):'}
+                  {isKn ? 'ನುಡಿ ಮಿತ್ರನಿಗೆ 1-ಕ್ಲಿಕ್‌ನಲ್ಲಿ ಕೇಳಿ:' : 'Ask NudiMitra (1-Click):'}
                 </div>
 
                 <div className="space-y-1.5">
@@ -520,7 +534,7 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
             <div className="bg-zinc-50 border-t border-zinc-200/80 px-5 py-3 flex items-center justify-between text-xs text-zinc-500">
               <div className="flex items-center gap-1.5 font-kannada text-[11px]">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{isKn ? 'ಕನ್ನಡ ಧ್ವನಿ ಎಂಜಿನ್ ಸಕ್ರಿಯವಾಗಿದೆ' : 'Kannada Voice Engine Active'}</span>
+                <span>{isKn ? 'ನುಡಿ ಮಿತ್ರ ಕನ್ನಡ ಧ್ವನಿ ಎಂಜಿನ್ ಸಕ್ರಿಯವಾಗಿದೆ' : 'NudiMitra Kannada Voice Engine Active'}</span>
               </div>
 
               {/* Speech Speed Pacing Control */}
@@ -552,6 +566,15 @@ export const CitizenVoiceAssistant: React.FC<CitizenVoiceAssistantProps> = ({
           </div>
         </div>
       )}
+
+      {/* 3. WhatsApp Share Modal for Spoken Answers */}
+      <WhatsAppShareModal
+        doc={doc}
+        lang={lang}
+        isOpen={isWhatsAppOpen}
+        onClose={() => setIsWhatsAppOpen(false)}
+        qaSnippet={lastQuestion && answer ? { question: lastQuestion, answer } : undefined}
+      />
     </>
   );
 };

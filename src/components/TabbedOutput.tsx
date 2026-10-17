@@ -151,6 +151,7 @@ export const TabbedOutput: React.FC<TabbedOutputProps> = ({
         {activeTab === 'summary' && (
           <TabSummary
             summary={doc.summary}
+            doc={doc}
             lang={lang}
             fontSize={fontSize}
           />

@@ -24,6 +24,8 @@ import { LandingPage } from './components/LandingPage';
 import { Toast, ToastMessage } from './components/Toast';
 import { OutputTabId } from './components/TabbedOutput';
 import { sampleDocuments } from './data/sampleDocuments';
+import { CitizenHelplineHub } from './components/extensions/CitizenHelplineHub';
+import { KannadaJargonExplainer } from './components/extensions/KannadaJargonExplainer';
 
 export const App: React.FC = () => {
   // Application State
@@ -34,6 +36,8 @@ export const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(() => storageService.getSettings());
   const [activeView, setActiveView] = useState<'overview' | 'workspace' | 'vault'>('overview');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [isHelplineOpen, setIsHelplineOpen] = useState(false);
+  const [isJargonOpen, setIsJargonOpen] = useState(false);
 
   // Workspace Document State
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -282,6 +286,8 @@ export const App: React.FC = () => {
         activeView={activeView}
         setActiveView={setActiveView}
         savedDocsCount={savedDocsCount}
+        onOpenHelplines={() => setIsHelplineOpen(true)}
+        onOpenJargon={() => setIsJargonOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -343,6 +349,20 @@ export const App: React.FC = () => {
             : 'BhashaSetu • Kannada Document AI & OCR'}
         </p>
       </footer>
+
+      {/* Citizen Helplines Modal */}
+      <CitizenHelplineHub
+        lang={lang}
+        isOpen={isHelplineOpen}
+        onClose={() => setIsHelplineOpen(false)}
+      />
+
+      {/* Citizen Government Jargon Simplifier Modal */}
+      <KannadaJargonExplainer
+        lang={lang}
+        isOpen={isJargonOpen}
+        onClose={() => setIsJargonOpen(false)}
+      />
 
       {/* Toast Notifications */}
       <Toast toasts={toasts} onDismiss={handleDismissToast} />

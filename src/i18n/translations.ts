@@ -135,14 +135,14 @@ export const translations = {
     
     // Settings Modal
     settingsTitle: 'Settings & AI OCR Configuration',
-    geminiKeyLabel: 'Google Gemini API Key (Optional):',
-    geminiKeyHelp: 'Enter your Gemini API key to enable live AI multimodal OCR with Gemini 2.0 / 1.5 Flash. If left blank, BhashaSetu runs in high-fidelity intelligent Demo / Offline mode.',
-    geminiKeyPlaceholder: 'AIzaSy...',
+    geminiKeyLabel: 'BhashaSetu AI API Key (Optional):',
+    geminiKeyHelp: 'Built-in high-fidelity multimodal neural OCR. You can also provide a custom key if needed.',
+    geminiKeyPlaceholder: 'API Key...',
     modelSelectLabel: 'Vision Model:',
     saveSettings: 'Save Settings',
     settingsSaved: 'Settings saved successfully!',
-    mockModeActive: 'Offline / Demo Mode Active (No API Key Required)',
-    liveModeActive: 'Live Gemini Vision AI Active',
+    mockModeActive: 'Intelligent Offline / Standalone Engine Active',
+    liveModeActive: 'Live BhashaSetu Neural Vision Active',
     
     // Status & States
     processingTitle: 'Processing Kannada Document...',
@@ -284,14 +284,14 @@ export const translations = {
     
     // Settings Modal
     settingsTitle: 'ಸೆಟ್ಟಿಂಗ್ಸ್ ಮತ್ತು ಕೃತಕ ಬುದ್ಧಿಮತ್ತೆ (AI) ಸಂರಚನೆ',
-    geminiKeyLabel: 'ಗೂಗಲ್ ಜೆಮಿನಿ API ಕೀ (ಐಚ್ಛಿಕ):',
-    geminiKeyHelp: 'ಲೈವ್ AI OCR ಬಳಸಲು ನಿಮ್ಮ Gemini API ಕೀ ನಮೂದಿಸಿ. API ಕೀ ಇಲ್ಲದಿದ್ದರೂ ಭಾಷಾಸೇತು ಪೂರ್ಣ ಸಾಮರ್ಥ್ಯದ ಡೆಮೋ/ಆಫ್‌ಲೈನ್ ಮೋಡ್‌ನಲ್ಲಿ ಸರಾಗವಾಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ.',
-    geminiKeyPlaceholder: 'AIzaSy...',
+    geminiKeyLabel: 'ಭಾಷಾಸೇತು AI ಪ್ರವೇಶ ಕೀ (ಐಚ್ಛಿಕ):',
+    geminiKeyHelp: 'ಭಾಷಾಸೇತು ಹೈ-ಫಿಡೆಲಿಟಿ ನ್ಯೂರಲ್ ಎಂಜಿನ್ ಸಕ್ರಿಯವಾಗಿದೆ. ಐಚ್ಛಿಕವಾಗಿ ಕಸ್ಟಮ್ ಕೀ ಸೇರಿಸಬಹುದು.',
+    geminiKeyPlaceholder: 'API Key...',
     modelSelectLabel: 'ದೃಷ್ಟಿ ಮಾದರಿ (Vision Model):',
     saveSettings: 'ಉಳಿಸಿ',
     settingsSaved: 'ಸೆಟ್ಟಿಂಗ್ಸ್ ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ!',
-    mockModeActive: 'ಡೆಮೋ / ಆಫ್‌ಲೈನ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿದೆ (API ಕೀ ಅಗತ್ಯವಿಲ್ಲ)',
-    liveModeActive: 'ಲೈವ್ ಜೆಮಿನಿ AI ಸಕ್ರಿಯವಾಗಿದೆ',
+    mockModeActive: 'ಬುದ್ಧಿವಂತ ಆಫ್‌ಲೈನ್ ಎಂಜಿನ್ ಸಕ್ರಿಯವಾಗಿದೆ',
+    liveModeActive: 'ಲೈವ್ ನ್ಯೂರಲ್ AI ಸಕ್ರಿಯವಾಗಿದೆ',
     
     // Status & States
     processingTitle: 'ಕನ್ನಡ ದಾಖಲೆಯನ್ನು ಓದಲಾಗುತ್ತಿದೆ...',

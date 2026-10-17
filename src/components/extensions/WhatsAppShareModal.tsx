@@ -16,6 +16,10 @@ interface WhatsAppShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   redactPiiEnabled?: boolean;
+  qaSnippet?: {
+    question: string;
+    answer: string;
+  };
 }
 
 export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
@@ -23,9 +27,11 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   lang,
   isOpen,
   onClose,
-  redactPiiEnabled = false
+  redactPiiEnabled = false,
+  qaSnippet
 }) => {
   const [copied, setCopied] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   if (!isOpen) return null;
 
@@ -47,8 +53,20 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
     .map((point) => `• ${point}`)
     .join('\n');
 
-  const shareText = 
-`📄 *${isKn ? 'ಭಾಷಾಸೇತು (BhashaSetu) ದಾಖಲೆ ಸಾರಾಂಶ' : 'BhashaSetu Kannada Document Summary'}*
+  // Format message based on whether it's Voice Q&A or full summary
+  const shareText = qaSnippet 
+    ? `🎙️ *${isKn ? 'ಭಾಷಾಸೇತು ನುಡಿ ಮಿತ್ರ ಧ್ವನಿ ಸಮಾಲೋಚನೆ' : 'BhashaSetu NudiMitra Voice Q&A'}*
+━━━━━━━━━━━━━━━━━━━
+📌 *${isKn ? 'ದಾಖಲೆ:' : 'Document:'}* ${doc.title}
+❓ *${isKn ? 'ಕೇಳಲಾದ ಪ್ರಶ್ನೆ:' : 'Question Asked:'}* "${qaSnippet.question}"
+
+💡 *${isKn ? 'ನುಡಿ ಮಿತ್ರ ನೀಡಿದ ಉತ್ತರ:' : 'Answer from NudiMitra:'}*
+${qaSnippet.answer}
+
+━━━━━━━━━━━━━━━━━━━
+✓ *ದೃಢೀಕರಣ:* BhashaSetu AI ನಿಂದ ಪರಿಶೀಲಿಸಲಾಗಿದೆ
+🔗 *ಡಿಜಿಟಲ್ ಪ್ರತಿ:* ಭಾಷಾಸೇತು ವೇದಿಕೆ`
+    : `📄 *${isKn ? 'ಭಾಷಾಸೇತು (BhashaSetu) ದಾಖಲೆ ಸಾರಾಂಶ' : 'BhashaSetu Kannada Document Summary'}*
 ━━━━━━━━━━━━━━━━━━━
 📌 *${isKn ? 'ದಾಖಲೆ:' : 'Document:'}* ${doc.title}
 ${amountSnippet}
@@ -71,11 +89,15 @@ ${redactPiiEnabled ? `🔒 *ಖಾಸಗಿತನ ರಕ್ಷಣೆ:* ಸೂಕ
 
   const handleOpenWhatsApp = () => {
     const encoded = encodeURIComponent(shareText);
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+    const url = cleanPhone 
+      ? `https://api.whatsapp.com/send?phone=${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}&text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+    window.open(url, '_blank');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
       <div 
         className="bg-white rounded-2xl border border-zinc-200 shadow-xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -87,17 +109,19 @@ ${redactPiiEnabled ? `🔒 *ಖಾಸಗಿತನ ರಕ್ಷಣೆ:* ಸೂಕ
               <Share2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-semibold text-zinc-900 text-sm">
-                {isKn ? 'ವಾಟ್ಸಾಪ್ ಸಾರಾಂಶ ಹಂಚಿಕೆ' : 'Share Summary to WhatsApp'}
+              <h3 className="font-semibold text-zinc-900 text-sm font-kannada">
+                {qaSnippet 
+                  ? (isKn ? 'ನುಡಿ ಮಿತ್ರ ಧ್ವನಿ ಸಮಾಲೋಚನೆ ಹಂಚಿಕೊಳ್ಳಿ' : 'Share Voice Consultation to WhatsApp')
+                  : (isKn ? 'ವಾಟ್ಸಾಪ್ ಸಾರಾಂಶ ಹಂಚಿಕೆ' : 'Share Summary to WhatsApp')}
               </h3>
-              <p className="text-[11px] text-zinc-500">
-                {isKn ? 'ರೈತರು ಹಾಗೂ ನಾಗರಿಕರಿಗೆ ಸುಲಭವಾಗಿ ಅರ್ಥವಾಗುವ ಮಾದರಿ' : 'Ready-to-share plain language summary for citizens'}
+              <p className="text-[11px] text-zinc-500 font-kannada">
+                {isKn ? 'ರೈತರು ಹಾಗೂ ಕುಟುಂಬ ಸದಸ್ಯರಿಗೆ ಸುಲಭವಾಗಿ ಅರ್ಥವಾಗುವ ಸಂದೇಶ' : 'Ready-to-share plain language summary for citizens'}
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -117,8 +141,25 @@ ${redactPiiEnabled ? `🔒 *ಖಾಸಗಿತನ ರಕ್ಷಣೆ:* ಸೂಕ
             )}
           </div>
 
-          <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/60 text-zinc-800 text-xs font-mono whitespace-pre-wrap leading-relaxed shadow-2xs">
+          <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/60 text-zinc-800 text-xs font-mono whitespace-pre-wrap leading-relaxed shadow-2xs max-h-60 overflow-y-auto">
             {shareText}
+          </div>
+
+          {/* Optional Direct Mobile Recipient */}
+          <div className="pt-2 border-t border-zinc-200/60">
+            <label className="block text-[11px] font-medium text-zinc-600 mb-1 font-kannada">
+              {isKn ? 'ನೇರ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಗೆ ಕಳುಹಿಸಿ (ಐಚ್ಛಿಕ - 10 ಅಂಕಿಗಳು):' : 'Direct WhatsApp Number (Optional):'}
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-xs text-zinc-400 font-mono">+91</span>
+              <input
+                type="tel"
+                placeholder="9845012345"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="w-full pl-11 pr-3 py-2 text-xs border border-zinc-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+              />
+            </div>
           </div>
         </div>
 
@@ -153,7 +194,7 @@ ${redactPiiEnabled ? `🔒 *ಖಾಸಗಿತನ ರಕ್ಷಣೆ:* ಸೂಕ
               className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{isKn ? 'ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಕಳುಹಿಸಿ' : 'Open in WhatsApp'}</span>
+              <span>{isKn ? 'ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಕಳುಹಿಸಿ' : 'Send via WhatsApp'}</span>
             </button>
           </div>
         </div>

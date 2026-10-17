@@ -1,7 +1,9 @@
 import React from 'react';
 import { 
   Languages, 
-  FolderArchive
+  FolderArchive,
+  PhoneCall,
+  BookOpen
 } from 'lucide-react';
 import { UILanguage, AppSettings } from '../types';
 import { translations } from '../i18n/translations';
@@ -14,6 +16,8 @@ interface HeaderProps {
   activeView: 'overview' | 'workspace' | 'vault';
   setActiveView: (view: 'overview' | 'workspace' | 'vault') => void;
   savedDocsCount: number;
+  onOpenHelplines?: () => void;
+  onOpenJargon?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,7 +25,9 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleLang,
   activeView,
   setActiveView,
-  savedDocsCount
+  savedDocsCount,
+  onOpenHelplines,
+  onOpenJargon
 }) => {
   const t = translations[lang];
 
@@ -90,10 +96,36 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
+            {/* Karnataka Citizen & Farmer Helplines Trigger */}
+            {onOpenHelplines && (
+              <button
+                type="button"
+                onClick={onOpenHelplines}
+                className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-amber-300/80 bg-amber-50 hover:bg-amber-100/80 text-amber-950 font-medium text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer font-kannada"
+                title={lang === 'kn' ? 'ಕರ್ನಾಟಕ ಸರ್ಕಾರಿ ಮತ್ತು ರೈತ ಸಹಾಯವಾಣಿಗಳು' : 'Karnataka Civic & Farmer Helplines'}
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden md:inline">{lang === 'kn' ? 'ಸಹಾಯವಾಣಿ' : 'Helplines'}</span>
+              </button>
+            )}
+
+            {/* Citizen Government Jargon Simplifier Trigger */}
+            {onOpenJargon && (
+              <button
+                type="button"
+                onClick={onOpenJargon}
+                className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-emerald-300/80 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-950 font-medium text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer font-kannada"
+                title={lang === 'kn' ? 'ಸರಳ ಕನ್ನಡ ಸರ್ಕಾರಿ ಪದಕೋಶ' : 'Karnataka Government Jargon Simplifier'}
+              >
+                <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                <span className="hidden md:inline">{lang === 'kn' ? 'ಪದಕೋಶ' : 'Glossary'}</span>
+              </button>
+            )}
+
             {/* Bilingual Toggle Button (Solid Matte Charcoal) */}
             <button
               onClick={onToggleLang}
-              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs sm:text-sm shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
+              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs sm:text-sm shadow-xs flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
               title={t.toggleLanguage}
             >
               <Languages className="w-4 h-4 text-zinc-400" />

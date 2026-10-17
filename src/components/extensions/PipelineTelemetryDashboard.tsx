@@ -60,7 +60,7 @@ export const PipelineTelemetryDashboard: React.FC<PipelineTelemetryDashboardProp
       step: 4,
       titleEn: 'LLM Semantic Simplification & RAG',
       titleKn: 'ಅರ್ಥ ವಿವರಣೆ & RAG ಮಾದರಿ',
-      descEn: 'Gemini multimodal reasoning, plain-language translation & audio',
+      descEn: 'BhashaSetu multimodal neural reasoning, plain-language translation & audio',
       descKn: 'ಸಾಮಾನ್ಯ ಜನರಿಗೆ ಸುಲಭವಾಗಿ ಅರ್ಥವಾಗುವ ಸರಳ ಕನ್ನಡ ಸಾರಾಂಶ',
       status: 'completed'
     }

@@ -9,11 +9,13 @@ import {
   Headphones,
   CheckCircle,
   FileText,
-  Sparkles
+  Sparkles,
+  Share2
 } from 'lucide-react';
 import { DigitizedDocument, UILanguage } from '../types';
 import { translations } from '../i18n/translations';
 import { speechService } from '../services/speechService';
+import { WhatsAppShareModal } from './extensions/WhatsAppShareModal';
 
 interface AudioPlayerBarProps {
   doc: DigitizedDocument;
@@ -32,6 +34,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const [rate, setRate] = useState<number>(defaultRate);
   const [audioSource, setAudioSource] = useState<'kannada_raw' | 'kannada_summary'>('kannada_raw');
   const [isSupported, setIsSupported] = useState(true);
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   useEffect(() => {
     setIsSupported(speechService.isSupported());
@@ -208,6 +211,16 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
           <span>{rate}x</span>
         </button>
 
+        {/* 1-Click WhatsApp Share of Document & Audio Summary */}
+        <button
+          onClick={() => setIsWhatsAppOpen(true)}
+          className="px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-2xs font-kannada"
+          title={lang === 'kn' ? 'ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಸಾರಾಂಶ ಹಂಚಿಕೊಳ್ಳಿ' : 'Share on WhatsApp'}
+        >
+          <Share2 className="w-3.5 h-3.5 text-emerald-700" />
+          <span className="hidden sm:inline">{lang === 'kn' ? 'ವಾಟ್ಸಾಪ್' : 'WhatsApp'}</span>
+        </button>
+
         {/* Real-time speaking animation wave */}
         {isPlaying && !isPaused && (
           <div className="flex items-center gap-0.5 ml-1">
@@ -218,6 +231,14 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
           </div>
         )}
       </div>
+
+      {/* WhatsApp Share Modal */}
+      <WhatsAppShareModal
+        doc={doc}
+        lang={lang}
+        isOpen={isWhatsAppOpen}
+        onClose={() => setIsWhatsAppOpen(false)}
+      />
     </div>
   );
 };

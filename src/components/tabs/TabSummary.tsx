@@ -1,24 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   CheckCircle2, 
   Calendar, 
-  IndianRupee
+  IndianRupee,
+  Share2,
+  BookOpen
 } from 'lucide-react';
-import { DocumentSummary, UILanguage } from '../../types';
+import { DocumentSummary, UILanguage, DigitizedDocument } from '../../types';
 import { translations } from '../../i18n/translations';
+import { WhatsAppShareModal } from '../extensions/WhatsAppShareModal';
+import { KannadaJargonExplainer } from '../extensions/KannadaJargonExplainer';
 
 interface TabSummaryProps {
   summary: DocumentSummary;
+  doc?: DigitizedDocument;
   lang: UILanguage;
   fontSize: 'normal' | 'large' | 'xlarge';
 }
 
 export const TabSummary: React.FC<TabSummaryProps> = ({
   summary,
+  doc,
   lang,
   fontSize
 }) => {
   const t = translations[lang];
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
+  const [isJargonOpen, setIsJargonOpen] = useState(false);
 
   const textSize =
     fontSize === 'xlarge'
@@ -29,6 +37,43 @@ export const TabSummary: React.FC<TabSummaryProps> = ({
 
   return (
     <div className="space-y-4 animate-fadeIn">
+      {/* 1-Click WhatsApp Citizen Share Bar */}
+      {doc && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+              <Share2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-emerald-950 font-kannada">
+                {lang === 'kn' ? 'ಕುಟುಂಬ / ಪಂಚಾಯತ್ ಜೊತೆ ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ' : 'Share Summary to Family / Gram Panchayat'}
+              </h4>
+              <p className="text-[11px] text-emerald-700 font-kannada">
+                {lang === 'kn' ? 'ಈ ಸರಳ ಸಾರಾಂಶವನ್ನು 1-ಕ್ಲಿಕ್‌ನಲ್ಲಿ ವಾಟ್ಸಾಪ್ ಮೂಲಕ ಕಳುಹಿಸಬಹುದು' : 'Send key takeaways, amount, and dates via WhatsApp with 1 tap'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsJargonOpen(true)}
+              className="px-3 py-2 rounded-xl border border-emerald-300/80 bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-semibold font-kannada flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+              title={lang === 'kn' ? 'ಸರಳ ಕನ್ನಡ ಸರ್ಕಾರಿ ಪದಕೋಶ' : 'Government Jargon Simplifier'}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+              <span>{lang === 'kn' ? 'ಸರ್ಕಾರಿ ಪದಕೋಶ' : 'Govt Glossary'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsWhatsAppOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-kannada flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>{lang === 'kn' ? 'ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಕಳುಹಿಸಿ' : 'Send to WhatsApp'}</span>
+            </button>
+          </div>
+        </div>
+      )}
       {/* Grid: Kannada Simple Points & English Plain-Language */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Simplified Kannada Points */}
@@ -135,6 +180,23 @@ export const TabSummary: React.FC<TabSummaryProps> = ({
           )}
         </div>
       </div>
+
+      {/* WhatsApp Share Modal */}
+      {doc && (
+        <WhatsAppShareModal
+          doc={doc}
+          lang={lang}
+          isOpen={isWhatsAppOpen}
+          onClose={() => setIsWhatsAppOpen(false)}
+        />
+      )}
+
+      {/* Citizen Jargon Explainer Modal */}
+      <KannadaJargonExplainer
+        lang={lang}
+        isOpen={isJargonOpen}
+        onClose={() => setIsJargonOpen(false)}
+      />
     </div>
   );
 };
