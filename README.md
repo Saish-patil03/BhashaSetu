@@ -1,6 +1,7 @@
 # BhashaSetu (ಭಾಷಾಸೇತು): Kannada Document AI & OCR
 > **Empowering Everyday Citizens:** Converting Kannada notices, agricultural invoices, handwritten family letters, and official circulars into searchable, accessible digital text.
-
+## Have A Look 
+https://bhasha-setu-three.vercel.app
 ---
 
 ## 🌟 Key Features & Accessibility UX ("For the People")
@@ -53,12 +54,3 @@ BhashaSetu is configured with a specialized Multimodal Vision system prompt opti
 
 ---
 
-## 🚀 Running the Application
-
-The application is already built and running locally:
-```bash
-cd /Users/saishpatil/.gemini/antigravity/scratch/bhashasetu-kannada-ocr
-npm run dev
-```
-
-Local URL: **http://localhost:5173**
