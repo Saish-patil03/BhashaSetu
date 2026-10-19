@@ -7,6 +7,8 @@ import {
 } from '../types';
 import { sampleDocuments } from '../data/sampleDocuments';
 import { classifyDocumentDomain } from './documentClassifierService';
+import { prepareHighResImageForOCR } from './imageProcessingService';
+import { sanitizeKannadaDocumentText, sanitizeSyncBlocks } from './kannadaSanitizerService';
 import Tesseract from 'tesseract.js';
 
 /**
@@ -50,43 +52,54 @@ export interface OCRProcessResult {
 }
 
 /**
- * Highly structured Kannada Multimodal Vision System Prompt
+ * Highly structured Kannada Document Intelligence & Vision LLM System Prompt
  * Adheres strictly to Kannada orthography (ಸ್ವರ, ವ್ಯಂಜನ, ಒತ್ತಕ್ಷರ),
- * tabular markdown retention, and bracketed cursive uncertainty notation [?].
- * Instructs Gemini to dynamically output sync blocks, verification audits, entities, and tables.
+ * zero stray Latin hallucinations, underline preservation, logical sectioning,
+ * and mandatory internal two-pass self-correction.
  */
 export const KANNADA_VISION_SYSTEM_PROMPT = `
-You are BhashaSetu OCR, a world-class Optical Character Recognition and Document AI engine specialized for the Kannada language (ಕನ್ನಡ).
-Your task is to transcribe, analyze, and structure the Kannada document in this image with extreme orthographic accuracy for everyday citizens.
+You are an expert Kannada Document Intelligence and OCR engine specializing in Indian legal, administrative, and official documents. Extract the text from the provided document image into structured sections with 100% orthographic fidelity.
 
-Strict Transcription Rules:
-1. Kannada Orthography & Conjuncts (ವತ್ತಕ್ಷರಗಳು):
-   - Accurately preserve base characters (Swaragalu, Vyanjanagalu) and complex conjunct characters (Vattaksharas, e.g., ರ್ಕ, ಷ್ಟ, ತ್ತ್ವ, ಂದ್ಯ, ಣ್ಣ, ಶ್ಚ).
-   - Do not drop Halant/Virama (್) or vowel signs (ಮಾತ್ರೆಗಳು).
-2. Layout Preservation:
-   - Preserve headers, serial numbers (೧, ೨, ೩ or 1, 2, 3), tables, bullet points, official stamps, and signature blocks.
-   - For tabular bills/receipts, output clean Markdown tables.
-3. Handwritten Uncertainty Flagging:
+CRITICAL EXTRACTION RULES:
+1. ZERO STRAY LATIN HALLUCINATIONS:
+   - If the document is in Kannada script, NEVER output random single English letters or short English words (like "L", "I", "on", "in", "o") in place of Kannada words, punctuation, or numbers.
+   - Specifically, never misread sequential list numbers (1., 2., 3.) as Latin letters (L, I, Z). Verify that numbered lists follow a logical sequence (1, 2, 3, 4...).
+   - Never misread short Kannada headings followed by :- (such as ವಾದಿಗಳು:- or ಪ್ರತಿವಾದಿಗಳು:-) as English words.
+
+2. UNDERLINES, BLANK FIELDS, AND SLASHES:
+   - Official and legal documents frequently contain blank underlined spaces to be filled in by hand (e.g., ಮೂಲ.ದಾ.ಸಂ. ______ /2010).
+   - Do NOT merge horizontal underlines with adjacent slashes (/) or digits. If a field has a blank space before a slash and year (like /2010), represent the blank space cleanly or preserve /2010 exactly as written. Never hallucinate numbers out of underlines.
+
+3. KANNADA ORTHOGRAPHIC & DIACRITIC PRECISION:
+   - Pay extreme attention to Kannada vowel signs (gunithaksharas) and subscript consonant conjuncts (ottaksharas).
+   - Distinguish carefully between ಾ (aa-kara) and ೌ (au-kara) (e.g., ಗೌಡ vs ಗಾಡ).
+   - Distinguish carefully between ಬನ್ and ಬಿನ್ (son/daughter of), ಕೋಂ (wife of), and ವಾಸ (residence).
+   - Preserve initialisms written in Kannada with periods accurately (e.g., ಹೆಚ್.ಎನ್.).
+
+4. LOGICAL SECTIONING (SYNC BLOCKS):
+   - Keep section headings attached to the content they introduce. For example, if a heading like ಪ್ರತಿವಾದಿಗಳು:- (Defendants:-) appears above a numbered list of defendants, place ಪ್ರತಿವಾದಿಗಳು:- at the start of the Defendants section rather than trailing at the end of the previous section.
+   - Ensure bounding boxes for each Sync Block tightly and accurately wrap the corresponding lines in the original document image.
+
+5. SELF-CORRECTION & TWO-PASS VERIFICATION (MANDATORY INTERNAL AUDIT):
+   Before generating the final JSON response, perform a mandatory internal line-by-line verification pass against the image:
+   - Pass 1 (Line & Heading Coverage): Scan from top to bottom. Ensure court/office header, case number (e.g. ಮೂಲ.ದಾ.ಸಂ. ______ /2010), intermediate preamble lines, plaintiff headings (ವಾದಿಗಳು:-), plaintiff list, defendant headings (ಪ್ರತಿವಾದಿಗಳು:-), and defendant list are all transcribed in exact sequence. Ensure NO lines or subheadings (like ವಾದಿಗಳು:-) are skipped between the case number and the first numbered item.
+   - Pass 2 (Orthography & Hallucination Check): Check every line start. Verify that list numbers 1., 2., 3. are numbers and not L or I. Check that bin/kom/residence terms are exact (ಬಿನ್, ಕೋಂ, ವಾಸ). Confirm that bounding boxes tightly encapsulate each section.
+
+6. Handwritten Uncertainty Flagging:
    - If a handwritten word or cursive stroke is ambiguous or smudged, enclose best guess in brackets with a question mark, e.g., [ಸರ್ವೆ ನಂ?] or [೪೨/ಅ?].
-4. Dynamic Document Classification:
-   - Automatically detect the exact document type (e.g. Study Certificate, Medical Report/Advisory, APMC Receipt, Govt Notice, Handwritten Letter, Legal Partition, or General).
-5. Dynamic Sync Blocks:
-   - Detect logical visual sections/blocks present in the image (e.g. Header, Metadata, Content/Table, Verification/Total, Stamp/Signature).
-   - Output estimated bounding box percentages { top: number, left: number, width: number, height: number } (0-100) and the verbatim text for each block.
-6. Dynamic Document Verification:
-   - Verify authenticity based on actual image contents: official stamps, seals, signatures, mathematical calculations, or clinical terminology.
+
 7. Output JSON Schema:
    You MUST respond with valid JSON strictly conforming to this structure:
    {
      "title": "Concise bilingual title in Kannada and English",
-     "category": "education_certificate" | "medical_report" | "financial_receipt" | "government_notice" | "handwritten_note" | "legal_document" | "general",
+     "category": "legal_document" | "government_notice" | "financial_receipt" | "education_certificate" | "medical_report" | "handwritten_note" | "general",
      "documentType": "Descriptive type name in Kannada and English",
-     "rawKannadaText": "Complete plain Unicode Kannada transcription of all text",
-     "formattedMarkdownText": "Full formatted Markdown representation with headers, tables, and lists",
+     "rawKannadaText": "Complete, verbatim plain Unicode Kannada transcription of all text with zero hallucinated Latin noise",
+     "formattedMarkdownText": "Full formatted Markdown representation with accurate headers, tables, and lists",
      "confidence": {
-       "overall": number (e.g. 97.5),
-       "characterAccuracy": number (e.g. 98.5),
-       "vattaksharaAccuracy": number (e.g. 96.0),
+       "overall": number (e.g. 98.5),
+       "characterAccuracy": number (e.g. 99.0),
+       "vattaksharaAccuracy": number (e.g. 98.0),
        "handwritingComplexity": "low" | "medium" | "high"
      },
      "syncBlocks": [
@@ -101,9 +114,9 @@ Strict Transcription Rules:
        }
      ],
      "verification": {
-       "domain": "education_certificate" | "medical" | "agricultural" | "government" | "legal_partition" | "general",
-       "badgeTitleKn": "ದೃಢೀಕರಣ ಶೀರ್ಷಿಕೆ (ಉದಾ: ಗಣಿತ / ನಿಯಮಾವಳಿ ಪರಿಶೀಲಿಸಲಾಗಿದೆ)",
-       "badgeTitleEn": "Verification Badge Title (e.g. Arithmetic Verified / Statutory Norms Validated)",
+       "domain": "legal_partition" | "government" | "agricultural" | "education_certificate" | "medical" | "general",
+       "badgeTitleKn": "ದೃಢೀಕರಣ ಶೀರ್ಷಿಕೆ (ಉದಾ: ನ್ಯಾಯಾಲಯ / ಕಂದಾಯ ದಾಖಲೆ ಪರಿಶೀಲಿಸಲಾಗಿದೆ)",
+       "badgeTitleEn": "Verification Badge Title (e.g. Judicial Docket Validated / Statutory Norms Verified)",
        "terminologyBadgeKn": "ಪರಿಭಾಷೆ / ದಾಖಲಾತಿ ದೃಢೀಕರಣ",
        "terminologyBadgeEn": "Terminology / Registry Validation",
        "stampBadgeKn": "ಅಧಿಕೃತ ಮುದ್ರೆ ಸ್ಥಿತಿ",
@@ -112,9 +125,9 @@ Strict Transcription Rules:
        "signatureBadgeEn": "Authorized Signature Status",
        "auditDetailsKn": "ಪೂರ್ಣ ಪರಿಶೀಲನಾ ವಿವರಣೆ",
        "auditDetailsEn": "Full audit / breakdown details",
-       "discrepancyAlertKn": "ಎಚ್ಚರಿಕೆ ಸಂದೇಶ",
-       "discrepancyAlertEn": "Discrepancy / Advisory alert",
-       "verifiedAmount": "ಮೊತ್ತ ಅಥವಾ ಮೌಲ್ಯ"
+       "discrepancyAlertKn": "ಎಚ್ಚರಿಕೆ ಸಂದೇಶ (ಅಥವಾ ಯಾವುದೂ ಇಲ್ಲ)",
+       "discrepancyAlertEn": "Discrepancy / Advisory alert (or None)",
+       "verifiedAmount": "ಮೊತ್ತ ಅಥವಾ ಕೇಸ್ ನಂಬರ್"
      },
      "structuredEntities": [
        {
@@ -132,7 +145,7 @@ Strict Transcription Rules:
        }
      ],
      "summary": {
-       "category": "government_notice" | "financial_receipt" | "handwritten_note" | "legal_document" | "general",
+       "category": "legal_document" | "government_notice" | "financial_receipt" | "handwritten_note" | "general",
        "simplifiedKannada": ["3-5 simple, conversational Kannada bullet points"],
        "simplifiedEnglish": ["3-5 clear English bullet points"],
        "keyActionItems": ["Specific action items for citizen"],
@@ -431,6 +444,14 @@ export async function digitizeKannadaDocument(
   modelName: string = 'gemini-3.5-flash',
   sampleIdHint?: string
 ): Promise<OCRProcessResult> {
+  // Preprocess image to guarantee high resolution (1500-2048px on longest side, lossless PNG, high bicubic smoothing)
+  let highResImageDataUrl = imageDataUrl;
+  try {
+    highResImageDataUrl = await prepareHighResImageForOCR(imageDataUrl);
+  } catch (prepErr) {
+    console.warn('High-res image pre-processing fell back to source image:', prepErr);
+  }
+
   // Only match preset sample if sampleIdHint is explicitly provided
   const matchedSample = sampleIdHint ? findMatchingSample(imageDataUrl, sampleIdHint) : null;
   const storedKey = typeof window !== 'undefined' ? localStorage.getItem('bhashasetu_gemini_api_key') : null;
@@ -448,8 +469,8 @@ export async function digitizeKannadaDocument(
     if (matchedSample) {
       return {
         title: `${matchedSample.titleKn} / ${matchedSample.titleEn}`,
-        rawKannadaText: matchedSample.rawKannadaText,
-        formattedMarkdownText: matchedSample.formattedMarkdownText,
+        rawKannadaText: sanitizeKannadaDocumentText(matchedSample.rawKannadaText),
+        formattedMarkdownText: sanitizeKannadaDocumentText(matchedSample.formattedMarkdownText),
         confidence: matchedSample.confidence,
         summary: matchedSample.summary,
         translations: matchedSample.translations,
@@ -463,8 +484,8 @@ export async function digitizeKannadaDocument(
       const enrichedCert = enrichOrSynthesizeDocument(KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText);
       return {
         title: KANNADA_STUDY_CERTIFICATE_DATA.title,
-        rawKannadaText: KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText,
-        formattedMarkdownText: KANNADA_STUDY_CERTIFICATE_DATA.formattedMarkdownText,
+        rawKannadaText: sanitizeKannadaDocumentText(KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText),
+        formattedMarkdownText: sanitizeKannadaDocumentText(KANNADA_STUDY_CERTIFICATE_DATA.formattedMarkdownText),
         confidence: KANNADA_STUDY_CERTIFICATE_DATA.confidence,
         summary: enrichedCert.summary,
         translations: enrichedCert.translations,
@@ -479,8 +500,8 @@ export async function digitizeKannadaDocument(
     if (isMedicalHint && medicalPreset) {
       return {
         title: `${medicalPreset.titleKn} / ${medicalPreset.titleEn}`,
-        rawKannadaText: medicalPreset.rawKannadaText,
-        formattedMarkdownText: medicalPreset.formattedMarkdownText,
+        rawKannadaText: sanitizeKannadaDocumentText(medicalPreset.rawKannadaText),
+        formattedMarkdownText: sanitizeKannadaDocumentText(medicalPreset.formattedMarkdownText),
         confidence: medicalPreset.confidence,
         summary: medicalPreset.summary,
         translations: medicalPreset.translations,
@@ -490,7 +511,7 @@ export async function digitizeKannadaDocument(
     }
 
     // 4. Client-Side Real Tesseract OCR Execution
-    const tesseractText = await runClientTesseractOCR(imageDataUrl);
+    const tesseractText = await runClientTesseractOCR(highResImageDataUrl);
     if (tesseractText && tesseractText.length > 20) {
       const tLower = tesseractText.toLowerCase();
       if (
@@ -504,8 +525,8 @@ export async function digitizeKannadaDocument(
         const enrichedCert = enrichOrSynthesizeDocument(KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText);
         return {
           title: KANNADA_STUDY_CERTIFICATE_DATA.title,
-          rawKannadaText: KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText,
-          formattedMarkdownText: KANNADA_STUDY_CERTIFICATE_DATA.formattedMarkdownText,
+          rawKannadaText: sanitizeKannadaDocumentText(KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText),
+          formattedMarkdownText: sanitizeKannadaDocumentText(KANNADA_STUDY_CERTIFICATE_DATA.formattedMarkdownText),
           confidence: KANNADA_STUDY_CERTIFICATE_DATA.confidence,
           summary: enrichedCert.summary,
           translations: enrichedCert.translations,
@@ -514,8 +535,8 @@ export async function digitizeKannadaDocument(
         };
       }
 
-      // Format real Tesseract text cleanly
-      const cleanTesseract = tesseractText.replace(/\r\n/g, '\n').trim();
+      // Format real Tesseract text cleanly with deterministic sanitizer
+      const cleanTesseract = sanitizeKannadaDocumentText(tesseractText.replace(/\r\n/g, '\n').trim());
       const enrichedTesseract = enrichOrSynthesizeDocument(cleanTesseract);
 
       return {
@@ -540,7 +561,7 @@ export async function digitizeKannadaDocument(
     }
 
     // 5. Intelligent domain-aware synthesized output for unknown documents
-    const defaultGenericText = `ಕನ್ನಡ ದಾಖಲೆ ಡಿಜಿಟೈಸೇಶನ್ ಪೂರ್ಣಗೊಂಡಿದೆ.\nದಿನಾಂಕ: ೧೭-೧೦-೨೦೨೬\n\nವಿಷಯ: ನಾಗರಿಕರ ಮಾಹಿತಿ ಹಾಗೂ ದಾಖಲೆ ಸಲ್ಲಿಕೆ ಸೂಚನೆ\nಸ್ಥಳೀಯ ಆಡಳಿತ ಕಾರ್ಯಾಲಯದ ವತಿಯಿಂದ ಸಾರ್ವಜನಿಕರಿಗೆ ಈ ಮೂಲಕ ತಿಳಿಸುವುದೇನೆಂದರೆ, ನಿಗದಿತ ಸೌಲಭ್ಯಗಳನ್ನು ಪಡೆಯಲು ಅಗತ್ಯ ದಾಖಲಾತಿಗಳನ್ನು ಸಲ್ಲಿಸಲು ಕೋರಲಾಗಿದೆ.\n\nಅಗತ್ಯ ವಿವರಗಳು:\n೧. ಚಾಲ್ತಿ ಸಾಲಿನ ಗುರುತಿನ ಚೀಟಿ ಹಾಗೂ ವಿಳಾಸ ದೃಢೀಕರಣ.\n೨. ಅಧಿಕೃತ ಅರ್ಜಿ ನಮೂನೆಯೊಂದಿಗೆ ದೃಢೀಕೃತ ದಾಖಲೆ ಲಗತ್ತಿಸುವುದು.\n೩. ಕೊನೆಯ ದಿನಾಂಕದೊಳಗೆ ನೋಂದಣಿ ಪೂರ್ಣಗೊಳಿಸುವುದು.\n\n[ಅಧಿಕೃತ ಮೊಹರು ಹಾಗೂ ಸಹಿ]`;
+    const defaultGenericText = sanitizeKannadaDocumentText(`ಕನ್ನಡ ದಾಖಲೆ ಡಿಜಿಟೈಸೇಶನ್ ಪೂರ್ಣಗೊಂಡಿದೆ.\nದಿನಾಂಕ: ೧೭-೧೦-೨೦೨೬\n\nವಿಷಯ: ನಾಗರಿಕರ ಮಾಹಿತಿ ಹಾಗೂ ದಾಖಲೆ ಸಲ್ಲಿಕೆ ಸೂಚನೆ\nಸ್ಥಳೀಯ ಆಡಳಿತ ಕಾರ್ಯಾಲಯದ ವತಿಯಿಂದ ಸಾರ್ವಜನಿಕರಿಗೆ ಈ ಮೂಲಕ ತಿಳಿಸುವುದೇನೆಂದರೆ, ನಿಗದಿತ ಸೌಲಭ್ಯಗಳನ್ನು ಪಡೆಯಲು ಅಗತ್ಯ ದಾಖಲಾತಿಗಳನ್ನು ಸಲ್ಲಿಸಲು ಕೋರಲಾಗಿದೆ.\n\nಅಗತ್ಯ ವಿವರಗಳು:\n೧. ಚಾಲ್ತಿ ಸಾಲಿನ ಗುರುತಿನ ಚೀಟಿ ಹಾಗೂ ವಿಳಾಸ ದೃಢೀಕರಣ.\n೨. ಅಧಿಕೃತ ಅರ್ಜಿ ನಮೂನೆಯೊಂದಿಗೆ ದೃಢೀಕೃತ ದಾಖಲೆ ಲಗತ್ತಿಸುವುದು.\n೩. ಕೊನೆಯ ದಿನಾಂಕದೊಳಗೆ ನೋಂದಣಿ ಪೂರ್ಣಗೊಳಿಸುವುದು.\n\n[ಅಧಿಕೃತ ಮೊಹರು ಹಾಗೂ ಸಹಿ]`);
     const fallbackEnriched = enrichOrSynthesizeDocument(defaultGenericText);
 
     return {
@@ -567,7 +588,7 @@ export async function digitizeKannadaDocument(
 
   // Live Gemini Multimodal Vision API Call (with automatic gemini-3.5-flash-lite fallback)
   try {
-    const { mimeType, base64Data } = parseDataUrl(imageDataUrl);
+    const { mimeType, base64Data } = parseDataUrl(highResImageDataUrl);
 
     const callGeminiVision = async (modelToUse: string) => {
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${effectiveApiKey}`;
@@ -634,8 +655,8 @@ export async function digitizeKannadaDocument(
     }
 
     const parsed = JSON.parse(cleanJson);
-    const rawKannadaText = parsed.rawKannadaText || '';
-    const formattedMarkdownText = parsed.formattedMarkdownText || rawKannadaText;
+    const rawKannadaText = sanitizeKannadaDocumentText(parsed.rawKannadaText || '');
+    const formattedMarkdownText = sanitizeKannadaDocumentText(parsed.formattedMarkdownText || rawKannadaText);
 
     // Use Gemini's dynamic summary directly, or enrich if missing
     const summary: DocumentSummary = (parsed.summary && parsed.summary.simplifiedKannada && parsed.summary.simplifiedKannada.length > 0)
@@ -658,15 +679,15 @@ export async function digitizeKannadaDocument(
       ? parsed.structuredEntities.map((ent: any, idx: number) => ({
           id: `ent-gemini-${idx}`,
           keyEn: ent.keyEn || 'Property',
-          keyKn: ent.keyKn || 'ವಿವರ',
-          value: ent.value || '',
+          keyKn: sanitizeKannadaDocumentText(ent.keyKn || 'ವಿವರ'),
+          value: sanitizeKannadaDocumentText(ent.value || ''),
           category: ent.category || 'reference',
           confidence: 98.0
         }))
       : undefined;
 
-    // Format dynamic sync blocks if provided by Gemini
-    const syncBlocks = Array.isArray(parsed.syncBlocks) && parsed.syncBlocks.length > 0
+    // Format dynamic sync blocks if provided by Gemini with heading attachment sanitizer
+    let syncBlocks = Array.isArray(parsed.syncBlocks) && parsed.syncBlocks.length > 0
       ? parsed.syncBlocks.map((b: any, idx: number) => ({
           id: b.id || `block-${idx}`,
           labelEn: b.labelEn || `${idx + 1}. Section ${idx + 1}`,
@@ -674,9 +695,13 @@ export async function digitizeKannadaDocument(
           shortLabelEn: b.shortLabelEn || `Section ${idx + 1}`,
           shortLabelKn: b.shortLabelKn || `ವಿಭಾಗ ${idx + 1}`,
           box: b.box || { top: 4 + idx * 22, left: 4, width: 92, height: 18 },
-          extractedText: b.extractedText || ''
+          extractedText: sanitizeKannadaDocumentText(b.extractedText || '')
         }))
       : undefined;
+
+    if (syncBlocks && syncBlocks.length > 0) {
+      syncBlocks = sanitizeSyncBlocks(syncBlocks);
+    }
 
     return {
       title: parsed.title || 'ಡಿಜಿಟಲ್ ಕನ್ನಡ ದಾಖಲೆ (Kannada Document)',

@@ -1,5 +1,7 @@
 export type LayoutBlockId = string;
 
+import { sanitizeKannadaDocumentText, sanitizeSyncBlocks } from './kannadaSanitizerService';
+
 export interface LayoutBlockItem {
   id: LayoutBlockId;
   labelKn: string;
@@ -276,19 +278,21 @@ export function parseDocumentIntoSyncBlocks(rawText: string = '', sampleId?: str
       }
     }
 
-    return APMC_PRESET_BLOCKS.map((def) => {
-      let txt = '';
-      if (def.id === 'header') txt = headerLines.join('\n');
-      else if (def.id === 'metadata') txt = metaLines.join('\n');
-      else if (def.id === 'table') txt = tableLines.join('\n');
-      else if (def.id === 'net_payable') txt = netLines.join('\n');
-      else txt = stampLines.join('\n');
+    return sanitizeSyncBlocks(
+      APMC_PRESET_BLOCKS.map((def) => {
+        let txt = '';
+        if (def.id === 'header') txt = headerLines.join('\n');
+        else if (def.id === 'metadata') txt = metaLines.join('\n');
+        else if (def.id === 'table') txt = tableLines.join('\n');
+        else if (def.id === 'net_payable') txt = netLines.join('\n');
+        else txt = stampLines.join('\n');
 
-      return {
-        ...def,
-        extractedText: txt
-      };
-    });
+        return {
+          ...def,
+          extractedText: sanitizeKannadaDocumentText(txt)
+        };
+      })
+    );
   }
 
   // Split document by natural paragraph breaks (\n\s*\n+)
@@ -319,7 +323,7 @@ export function parseDocumentIntoSyncBlocks(rawText: string = '', sampleId?: str
   const gap = count > 3 ? 1.5 : 2.5;
   const heightPerBlock = Math.max(8, (totalHeight - (count - 1) * gap) / count);
 
-  return selectedParagraphs.map((para, idx) => {
+  const blocks = selectedParagraphs.map((para, idx) => {
     const titles = inferParagraphTitle(para, idx, count);
     const box = {
       top: 4 + idx * (heightPerBlock + gap),
@@ -335,7 +339,9 @@ export function parseDocumentIntoSyncBlocks(rawText: string = '', sampleId?: str
       shortLabelEn: titles.shortLabelEn,
       shortLabelKn: titles.shortLabelKn,
       box,
-      extractedText: para
+      extractedText: sanitizeKannadaDocumentText(para)
     };
   });
+
+  return sanitizeSyncBlocks(blocks);
 }

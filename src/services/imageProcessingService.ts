@@ -21,6 +21,7 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 
 /**
  * Rotates an image by degrees (e.g. 90, -90, 180)
+ * Uses lossless PNG export to preserve Kannada conjuncts and diacritics
  */
 export async function rotateImage(dataUrl: string, degrees: number): Promise<string> {
   const img = await loadImage(dataUrl);
@@ -34,11 +35,80 @@ export async function rotateImage(dataUrl: string, degrees: number): Promise<str
   canvas.width = isRightAngle ? img.height : img.width;
   canvas.height = isRightAngle ? img.width : img.height;
 
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate(rad);
   ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
-  return canvas.toDataURL('image/jpeg', 0.95);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Prepares an image for Kannada Vision LLM / OCR extraction:
+ * - Ensures image is NOT aggressively downscaled or JPEG-compressed
+ * - Preserves vowel diacritics (ಿ, ೀ, ೌ, ೈ) and conjunct consonants (ವತ್ತಕ್ಷರಗಳು)
+ * - Normalizes longest side to 1500px - 2048px with high-quality smoothing
+ * - Exports as lossless PNG or high-quality WebP (quality >= 0.95)
+ */
+export async function prepareHighResImageForOCR(dataUrl: string): Promise<string> {
+  // If SVG data URL, rasterize to crisp high-resolution canvas first
+  if (dataUrl.startsWith('data:image/svg+xml')) {
+    return rasterizeSvgToHighResPng(dataUrl, 1600, 2100);
+  }
+
+  const img = await loadImage(dataUrl);
+  const origWidth = img.naturalWidth || img.width;
+  const origHeight = img.naturalHeight || img.height;
+  const longestSide = Math.max(origWidth, origHeight);
+
+  // Determine optimal target dimensions (between 1500px and 2048px on longest side)
+  let targetWidth = origWidth;
+  let targetHeight = origHeight;
+
+  if (longestSide > 2048) {
+    const scale = 2048 / longestSide;
+    targetWidth = Math.round(origWidth * scale);
+    targetHeight = Math.round(origHeight * scale);
+  } else if (longestSide < 1500 && longestSide > 0) {
+    const scale = 1600 / longestSide;
+    targetWidth = Math.round(origWidth * scale);
+    targetHeight = Math.round(origHeight * scale);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return dataUrl;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+  // Return lossless PNG to eliminate any JPEG block compression around diacritics
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Rasterizes an SVG string/data URL onto a high-DPI canvas
+ */
+async function rasterizeSvgToHighResPng(svgDataUrl: string, targetWidth = 1600, targetHeight = 2100): Promise<string> {
+  const img = await loadImage(svgDataUrl);
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return svgDataUrl;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  // White background for documents
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+  return canvas.toDataURL('image/png');
 }
 
 /**
@@ -114,7 +184,7 @@ export async function applyImageFilter(
   }
 
   ctx.putImageData(imageData, 0, 0);
-  return canvas.toDataURL('image/jpeg', 0.95);
+  return canvas.toDataURL('image/png');
 }
 
 /**
@@ -132,6 +202,9 @@ export async function cropImage(
   canvas.width = Math.max(10, cropArea.width);
   canvas.height = Math.max(10, cropArea.height);
 
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   ctx.drawImage(
     img,
     cropArea.x,
@@ -144,5 +217,5 @@ export async function cropImage(
     cropArea.height
   );
 
-  return canvas.toDataURL('image/jpeg', 0.95);
+  return canvas.toDataURL('image/png');
 }
