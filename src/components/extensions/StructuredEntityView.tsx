@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table as TableIcon, 
   FileText, 
@@ -35,6 +35,11 @@ export const StructuredEntityView: React.FC<StructuredEntityViewProps> = ({
 }) => {
   const entities: ExtractedEntityItem[] = extractStructuredEntities(doc);
   const [tables, setTables] = useState<ExtractedTable[]>(() => extractStructuredTables(doc));
+
+  useEffect(() => {
+    setTables(extractStructuredTables(doc));
+  }, [doc.id, doc.rawKannadaText]);
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 

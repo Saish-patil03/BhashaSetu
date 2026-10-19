@@ -80,6 +80,7 @@ export const App: React.FC = () => {
 
   // Image Selection Handler (from File Upload, Camera, or Sample Presets)
   const handleSelectImage = async (imageDataUrl: string, sampleId?: string) => {
+    setCurrentDoc(null);
     setCurrentImage(imageDataUrl);
     setOriginalImage(imageDataUrl);
     setSampleIdHint(sampleId);

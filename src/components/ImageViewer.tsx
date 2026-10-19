@@ -113,11 +113,16 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
           {onSelectPreset && (
             <div className="bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg border border-zinc-200/80 shadow-xs flex items-center gap-1 text-xs">
               <select
-                value={activeSampleId || 'sample-apmc-invoice'}
-                onChange={(e) => onSelectPreset(e.target.value)}
+                value={activeSampleId || 'custom'}
+                onChange={(e) => {
+                  if (e.target.value !== 'custom') onSelectPreset(e.target.value);
+                }}
                 className="bg-transparent text-xs text-zinc-800 font-medium border-none outline-none cursor-pointer pr-1"
                 title="Switch Preset Sample Document"
               >
+                {!activeSampleId && (
+                  <option value="custom">📄 Custom Document (ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆ)</option>
+                )}
                 <option value="sample-apmc-invoice">Sample: APMC Mandi Receipt</option>
                 <option value="sample-govt-notice">Sample: Village Panchayat Notice</option>
                 <option value="sample-handwritten-note">Sample: Handwritten Kannada Note</option>

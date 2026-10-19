@@ -67,7 +67,9 @@ export const TabExtractedText: React.FC<TabExtractedTextProps> = ({
   const piiResult = redactPiiHelper(doc.rawKannadaText);
   const activeDisplayText = redactPii ? piiResult.redactedText : doc.rawKannadaText;
 
-  const syncBlocks = parseDocumentIntoSyncBlocks(activeDisplayText, doc.id);
+  const syncBlocks = (doc.syncBlocks && doc.syncBlocks.length > 0 && !redactPii)
+    ? doc.syncBlocks
+    : parseDocumentIntoSyncBlocks(activeDisplayText, doc.id);
 
   const handleCopy = async () => {
     const success = await copyToClipboard(activeDisplayText);

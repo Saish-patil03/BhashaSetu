@@ -167,19 +167,61 @@ export async function applyImageFilter(
       data[i + 2] = newLum;
     }
   } else if (filter === 'binarize') {
-    // Adaptive-like binarization threshold
-    let sumLum = 0;
-    for (let i = 0; i < len; i += 4) {
-      sumLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    }
-    const avgThreshold = Math.min(Math.max(sumLum / (len / 4) * 0.9, 110), 160);
+    // Local Adaptive Contrast Thresholding (Prevents stamp paper backgrounds & colored tints from blotting)
+    const width = canvas.width;
+    const height = canvas.height;
+    const lum = new Float32Array(width * height);
 
-    for (let i = 0; i < len; i += 4) {
-      const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      const val = lum < avgThreshold ? 0 : 255;
-      data[i] = val;
-      data[i + 1] = val;
-      data[i + 2] = val;
+    // 1. Calculate luminance map
+    for (let i = 0, p = 0; i < len; i += 4, p++) {
+      lum[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+
+    // 2. Block-based local background estimation (blockSize approx 24-32px)
+    const blockSize = Math.max(16, Math.min(36, Math.round(Math.min(width, height) / 30)));
+    const blocksX = Math.ceil(width / blockSize);
+    const blocksY = Math.ceil(height / blockSize);
+    const blockMeans = new Float32Array(blocksX * blocksY);
+
+    for (let by = 0; by < blocksY; by++) {
+      const yStart = by * blockSize;
+      const yEnd = Math.min(yStart + blockSize, height);
+      for (let bx = 0; bx < blocksX; bx++) {
+        const xStart = bx * blockSize;
+        const xEnd = Math.min(xStart + blockSize, width);
+
+        let sum = 0;
+        let count = 0;
+        for (let y = yStart; y < yEnd; y++) {
+          const rowOffset = y * width;
+          for (let x = xStart; x < xEnd; x++) {
+            sum += lum[rowOffset + x];
+            count++;
+          }
+        }
+        blockMeans[by * blocksX + bx] = count > 0 ? sum / count : 128;
+      }
+    }
+
+    // 3. Local adaptive thresholding per pixel
+    for (let y = 0; y < height; y++) {
+      const by = Math.min(Math.floor(y / blockSize), blocksY - 1);
+      const rowOffset = y * width;
+      for (let x = 0; x < width; x++) {
+        const bx = Math.min(Math.floor(x / blockSize), blocksX - 1);
+        const localMean = blockMeans[by * blocksX + bx];
+        const pixelIdx = rowOffset + x;
+        const pLum = lum[pixelIdx];
+
+        // Adaptive sensitivity offset: ink strokes are darker than the local background mean
+        const localThreshold = Math.max(localMean * 0.86 - 4, 35);
+        const val = pLum < localThreshold ? 0 : 255;
+
+        const dataIdx = pixelIdx * 4;
+        data[dataIdx] = val;
+        data[dataIdx + 1] = val;
+        data[dataIdx + 2] = val;
+      }
     }
   }
 

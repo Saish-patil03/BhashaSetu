@@ -75,11 +75,16 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
         {onSelectPreset && (
           <div className="flex items-center bg-zinc-100 rounded-lg p-0.5 border border-zinc-200/80 text-xs">
             <select
-              value={activeSampleId || 'sample-apmc-invoice'}
-              onChange={(e) => onSelectPreset(e.target.value)}
+              value={activeSampleId || 'custom'}
+              onChange={(e) => {
+                if (e.target.value !== 'custom') onSelectPreset(e.target.value);
+              }}
               className="bg-transparent text-xs text-zinc-800 font-medium border-none outline-none cursor-pointer px-2 py-1"
-              title="Switch Preset Sample"
+              title="Switch Preset Sample or View Custom Document"
             >
+              {!activeSampleId && (
+                <option value="custom">📄 Custom Document (ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆ)</option>
+              )}
               <option value="sample-apmc-invoice">APMC Mandi Receipt (Printed & Tabular)</option>
               <option value="sample-govt-notice">Village Panchayat Notice (Official Record)</option>
               <option value="sample-handwritten-note">Handwritten Kannada Note (ಕೈಬರಹ)</option>

@@ -144,6 +144,7 @@ export const SplitWorkspace: React.FC<SplitWorkspaceProps> = ({
           ) : doc ? (
             <div className="space-y-4">
               <TabbedOutput
+                key={doc.id}
                 doc={doc}
                 onUpdateText={onUpdateText}
                 onUpdateChatHistory={onUpdateChatHistory}

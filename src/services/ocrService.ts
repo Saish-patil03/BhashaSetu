@@ -58,43 +58,55 @@ export interface OCRProcessResult {
  * and mandatory internal two-pass self-correction.
  */
 export const KANNADA_VISION_SYSTEM_PROMPT = `
-You are an expert Kannada Document Intelligence and OCR engine specializing in Indian legal, administrative, and official documents. Extract the text from the provided document image into structured sections with 100% orthographic fidelity.
+You are an expert Kannada Document Intelligence and OCR engine specializing in Indian legal, administrative, and official documents (court filings, revenue land records/RTCs, stamp papers, government circulars, receipts, certificates, or handwritten notes). Extract the text from the provided document image into structured sections with 100% orthographic fidelity.
 
-CRITICAL EXTRACTION RULES:
-1. ZERO STRAY LATIN HALLUCINATIONS:
-   - If the document is in Kannada script, NEVER output random single English letters or short English words (like "L", "I", "on", "in", "o") in place of Kannada words, punctuation, or numbers.
-   - Specifically, never misread sequential list numbers (1., 2., 3.) as Latin letters (L, I, Z). Verify that numbered lists follow a logical sequence (1, 2, 3, 4...).
-   - Never misread short Kannada headings followed by :- (such as ವಾದಿಗಳು:- or ಪ್ರತಿವಾದಿಗಳು:-) as English words.
-
-2. UNDERLINES, BLANK FIELDS, AND SLASHES:
-   - Official and legal documents frequently contain blank underlined spaces to be filled in by hand (e.g., ಮೂಲ.ದಾ.ಸಂ. ______ /2010).
-   - Do NOT merge horizontal underlines with adjacent slashes (/) or digits. If a field has a blank space before a slash and year (like /2010), represent the blank space cleanly or preserve /2010 exactly as written. Never hallucinate numbers out of underlines.
-
-3. KANNADA ORTHOGRAPHIC & DIACRITIC PRECISION:
-   - Pay extreme attention to Kannada vowel signs (gunithaksharas) and subscript consonant conjuncts (ottaksharas).
-   - Distinguish carefully between ಾ (aa-kara) and ೌ (au-kara) (e.g., ಗೌಡ vs ಗಾಡ).
+CRITICAL UNIVERSAL EXTRACTION RULES:
+1. EXACT TEXT EXTRACTION & ORTHOGRAPHIC FIDELITY:
+   - Extract Kannada text, base consonants (vyanjanagalu), independent vowels (swaragalu), vowel signs (gunithaksharas like ಿ, ೀ, ು, ೂ, ೃ, ೆ, ೇ, ೈ, ೊ, ೋ, ೌ), subscript consonant conjuncts (vattaksharas e.g. ರ್ಕ, ಷ್ಟ, ತ್ತ್ವ, ಂದ್ಯ, ಣ್ಣ, ಶ್ಚ), and punctuation with zero character loss.
+   - Pay extreme attention to delicate diacritics: distinguish carefully between ಾ (aa-kara) and ೌ (au-kara) (e.g., ಗೌಡ vs ಗಾಡ).
    - Distinguish carefully between ಬನ್ and ಬಿನ್ (son/daughter of), ಕೋಂ (wife of), and ವಾಸ (residence).
    - Preserve initialisms written in Kannada with periods accurately (e.g., ಹೆಚ್.ಎನ್.).
 
-4. LOGICAL SECTIONING (SYNC BLOCKS):
-   - Keep section headings attached to the content they introduce. For example, if a heading like ಪ್ರತಿವಾದಿಗಳು:- (Defendants:-) appears above a numbered list of defendants, place ಪ್ರತಿವಾದಿಗಳು:- at the start of the Defendants section rather than trailing at the end of the previous section.
-   - Ensure bounding boxes for each Sync Block tightly and accurately wrap the corresponding lines in the original document image.
+2. SCRIPT INTEGRITY & ZERO STRAY LATIN NOISE:
+   - If the document is in Kannada script, NEVER insert stray lowercase English letters or words (such as "L", "I", "on", "in", "to", "o") between Kannada lines or in place of list markers or punctuation.
+   - Specifically, never misread sequential list numbers (1., 2., 3.) as Latin letters (L, I, Z).
+   - Never misread short Kannada headings followed by :- (such as ವಾದಿಗಳು:-, ಪ್ರತಿವಾದಿಗಳು:-, ವಿಷಯ:-) as English words.
+   - LEGITIMATE ENGLISH PRESERVATION: If legitimate English text actually exists in the document (such as official department names, Govt circular outward numbers e.g. "DPAR 71 SRR 2001", GSTIN, serial numbers, or English signatures), preserve it accurately.
 
-5. SELF-CORRECTION & TWO-PASS VERIFICATION (MANDATORY INTERNAL AUDIT):
+3. NUMERAL PRECISION (KANNADA NUMERALS VS ARABIC NUMERALS):
+   - Strictly distinguish between Kannada numerals (೦, ೧, ೨, ೩, ೪, ೫, ೬, ೭, ೮, ೯) and Arabic numerals (0-9).
+   - NEVER misread the Kannada digit '೧' (one) as '0' (zero).
+   - In multi-lakh figures and case numbers, never hallucinate a leading zero (e.g. do not emit "02,50,000" if the document states "೧೨,50,000" or "12,50,000").
+   - When figures are followed by parenthetical word amounts in Kannada (e.g. "ರೂ. ೧,೫೦,೦೦೦ (ಒಂದು ಲಕ್ಷದ ಐವತ್ತು ಸಾವಿರ)"), cross-verify the digits against the written words.
+
+4. BLANKS, UNDERLINES, AND FORM FIELDS:
+   - Official, revenue, and court dockets frequently contain blank underlined spaces to be filled in by hand (e.g., ಮೂಲ.ದಾ.ಸಂ. ______ /2010 or ದಿನಾಂಕ: ________).
+   - NEVER hallucinate numbers, text, or characters out of blank underlines (______), dotted lines, or empty form fields.
+   - Do NOT merge horizontal underlines with adjacent slashes (/) or year digits. Preserve blank underlines cleanly (e.g. "______ /2010").
+
+5. STAMPS, WATERMARKS, AND SIGNATURES:
+   - Official stamp papers feature background guilloche patterns, treasury watermarks, and colored security tints. NEVER generate gibberish characters or random symbol lines from background patterns.
+   - For official round or oval stamps, identify the issuing office if legible; transcribe unreadable official seals cleanly as [Official Seal].
+   - For cursive, unreadable, or stylized signatures, transcribe cleanly as [Signature].
+   - If handwritten text is ambiguous, mark best guess in brackets with a question mark: e.g. [ಸರ್ವೆ ನಂ?].
+
+6. LOGICAL SECTIONING (SYNC BLOCKS):
+   - Segment the document into logical Sync Blocks: Document Header / Court Office, Case Reference / Metadata, Section Content / Line Items, and Closing Signatures / Seals.
+   - Keep section subheaders (such as ಪ್ರತಿವಾದಿಗಳು:- or ಆದೇಶ:-) attached to the start of the content block they introduce rather than trailing at the end of the previous block.
+   - Bounding boxes for each block must accurately wrap the corresponding visual lines in the original document image.
+
+7. SELF-CORRECTION & TWO-PASS VERIFICATION (MANDATORY INTERNAL AUDIT):
    Before generating the final JSON response, perform a mandatory internal line-by-line verification pass against the image:
-   - Pass 1 (Line & Heading Coverage): Scan from top to bottom. Ensure court/office header, case number (e.g. ಮೂಲ.ದಾ.ಸಂ. ______ /2010), intermediate preamble lines, plaintiff headings (ವಾದಿಗಳು:-), plaintiff list, defendant headings (ಪ್ರತಿವಾದಿಗಳು:-), and defendant list are all transcribed in exact sequence. Ensure NO lines or subheadings (like ವಾದಿಗಳು:-) are skipped between the case number and the first numbered item.
-   - Pass 2 (Orthography & Hallucination Check): Check every line start. Verify that list numbers 1., 2., 3. are numbers and not L or I. Check that bin/kom/residence terms are exact (ಬಿನ್, ಕೋಂ, ವಾಸ). Confirm that bounding boxes tightly encapsulate each section.
+   - Pass 1 (Coverage): Scan from top to bottom. Ensure court/office header, case/file number, preamble, parties list, line-items, and closing signatures are all transcribed in exact sequence. Ensure NO intermediate lines or subheadings are skipped.
+   - Pass 2 (Orthography & Numerals): Check line starts for correct numbers (not L or I). Check that bin/kom/residence terms are exact (ಬಿನ್, ಕೋಂ, ವಾಸ). Confirm that '೧' is not confused with '0'.
 
-6. Handwritten Uncertainty Flagging:
-   - If a handwritten word or cursive stroke is ambiguous or smudged, enclose best guess in brackets with a question mark, e.g., [ಸರ್ವೆ ನಂ?] or [೪೨/ಅ?].
-
-7. Output JSON Schema:
+8. Output JSON Schema:
    You MUST respond with valid JSON strictly conforming to this structure:
    {
-     "title": "Concise bilingual title in Kannada and English",
+     "title": "Concise bilingual title reflecting actual document in Kannada and English",
      "category": "legal_document" | "government_notice" | "financial_receipt" | "education_certificate" | "medical_report" | "handwritten_note" | "general",
-     "documentType": "Descriptive type name in Kannada and English",
-     "rawKannadaText": "Complete, verbatim plain Unicode Kannada transcription of all text with zero hallucinated Latin noise",
+     "documentType": "Descriptive type name in Kannada and English (e.g. Civil Court Petition / ದಾವಾ ಪತ್ರ)",
+     "rawKannadaText": "Complete, verbatim plain Unicode Kannada transcription of all text with zero hallucinated noise",
      "formattedMarkdownText": "Full formatted Markdown representation with accurate headers, tables, and lists",
      "confidence": {
        "overall": number (e.g. 98.5),
@@ -115,25 +127,25 @@ CRITICAL EXTRACTION RULES:
      ],
      "verification": {
        "domain": "legal_partition" | "government" | "agricultural" | "education_certificate" | "medical" | "general",
-       "badgeTitleKn": "ದೃಢೀಕರಣ ಶೀರ್ಷಿಕೆ (ಉದಾ: ನ್ಯಾಯಾಲಯ / ಕಂದಾಯ ದಾಖಲೆ ಪರಿಶೀಲಿಸಲಾಗಿದೆ)",
-       "badgeTitleEn": "Verification Badge Title (e.g. Judicial Docket Validated / Statutory Norms Verified)",
-       "terminologyBadgeKn": "ಪರಿಭಾಷೆ / ದಾಖಲಾತಿ ದೃಢೀಕರಣ",
-       "terminologyBadgeEn": "Terminology / Registry Validation",
+       "badgeTitleKn": "ದೃಢೀಕರಣ ಶೀರ್ಷಿಕೆ",
+       "badgeTitleEn": "Verification Badge Title",
+       "terminologyBadgeKn": "ಪರಿಭಾಷೆ ದೃಢೀಕರಣ",
+       "terminologyBadgeEn": "Terminology Validation",
        "stampBadgeKn": "ಅಧಿಕೃತ ಮುದ್ರೆ ಸ್ಥಿತಿ",
        "stampBadgeEn": "Official Stamp Status",
        "signatureBadgeKn": "ಅಧಿಕೃತ ಸಹಿ ಸ್ಥಿತಿ",
        "signatureBadgeEn": "Authorized Signature Status",
        "auditDetailsKn": "ಪೂರ್ಣ ಪರಿಶೀಲನಾ ವಿವರಣೆ",
-       "auditDetailsEn": "Full audit / breakdown details",
+       "auditDetailsEn": "Full audit breakdown details",
        "discrepancyAlertKn": "ಎಚ್ಚರಿಕೆ ಸಂದೇಶ (ಅಥವಾ ಯಾವುದೂ ಇಲ್ಲ)",
-       "discrepancyAlertEn": "Discrepancy / Advisory alert (or None)",
+       "discrepancyAlertEn": "Discrepancy alert (or None)",
        "verifiedAmount": "ಮೊತ್ತ ಅಥವಾ ಕೇಸ್ ನಂಬರ್"
      },
      "structuredEntities": [
        {
          "keyKn": "ವಿಷಯ / ಹೆಸರು / ಪ್ರಾಧಿಕಾರ",
          "keyEn": "English label",
-         "value": "Extracted value",
+         "value": "Extracted value from THIS document",
          "category": "name" | "date" | "authority" | "reference" | "money" | "doc_type"
        }
      ],
@@ -145,16 +157,16 @@ CRITICAL EXTRACTION RULES:
        }
      ],
      "summary": {
-       "category": "legal_document" | "government_notice" | "financial_receipt" | "handwritten_note" | "general",
-       "simplifiedKannada": ["3-5 simple, conversational Kannada bullet points"],
-       "simplifiedEnglish": ["3-5 clear English bullet points"],
-       "keyActionItems": ["Specific action items for citizen"],
-       "importantDatesAndDeadlines": ["List of dates found"],
-       "monetaryAmounts": ["Any amounts or fees found"]
+       "category": "legal_document" | "government_notice" | "financial_receipt" | "education_certificate" | "medical_report" | "handwritten_note" | "general",
+       "simplifiedKannada": ["3-5 clear bullet points summarizing THIS document in simple Kannada"],
+       "simplifiedEnglish": ["3-5 clear English bullet points summarizing THIS document"],
+       "keyActionItems": ["Specific action items for citizen from THIS document"],
+       "importantDatesAndDeadlines": ["List of dates found in THIS document"],
+       "monetaryAmounts": ["Any amounts or fees found in THIS document"]
      },
      "translations": {
-       "english": "Fluent and faithful English translation",
-       "hindi": "Fluent and faithful Hindi translation"
+       "english": "Fluent English translation of THIS document",
+       "hindi": "Fluent Hindi translation of THIS document"
      },
      "tags": ["relevant", "kannada", "tags"]
    }
@@ -213,167 +225,79 @@ export function enrichOrSynthesizeDocument(
 } {
   const domainInfo = classifyDocumentDomain(rawText, title, category);
 
-  // 1. Medical & Health Advisory
-  if (domainInfo.domain === 'medical') {
-    const finalTitle =
-      title && !title.includes('ಗ್ರಾಮ ಪಂಚಾಯತಿ') && !title.includes('Scanned Kannada Document')
-        ? title
-        : 'ವೈದ್ಯಕೀಯ ಅಂಕಣ: ಮಧುಮೇಹ & ಇನ್ಸುಲಿನ್ (Medical Advisory: Diabetes & Insulin)';
-
-    const hasRichSummary =
-      parsedSummary &&
-      parsedSummary.simplifiedKannada &&
-      parsedSummary.simplifiedKannada.length >= 2 &&
-      !parsedSummary.simplifiedKannada[0].includes('ಮುಖ್ಯ ವಿವರಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ') &&
-      !parsedSummary.simplifiedKannada[0].includes('ಆಫ್‌ಲೈನ್ ಎಂಜಿನ್');
-
-    const summary: DocumentSummary = hasRichSummary
-      ? { ...parsedSummary, category: 'general' }
-      : {
-          category: 'general',
-          simplifiedKannada: [
-            'ಮಧುಮೇಹ ಅಥವಾ ಡಯಾಬಿಟಿಸ್ ಎನ್ನುವುದು ಗ್ರೀಕ್ ಪದ "ಇಳಿಗೊಳವೆ" (Siphon) ಮತ್ತು ಲ್ಯಾಟಿನ್ "ಮೆಲಿಟಸ್" (ಸಿಹಿ) ಪದಗಳಿಂದ ಬಂದಿದೆ.',
-            'ನಾವು ಸೇವಿಸುವ ಆಹಾರ ಜೀರ್ಣವಾಗಿ ಗ್ಲೂಕೋಸ್ ಆಗಿ ಪರಿವರ್ತಿತವಾಗುತ್ತದೆ; ಇದು ಜೀವಕೋಶಗಳಿಗೆ ಶಕ್ತಿ ಒದಗಿಸಲು ಇನ್ಸುಲಿನ್ ಹಾರ್ಮೋನ್ ಅತ್ಯಗತ್ಯ.',
-            'ಹೊಟ್ಟೆಯ ಹಿಂಭಾಗದಲ್ಲಿರುವ ಪ್ಯಾಂಕ್ರಿಯಾಸ್ (ಮೇದೋಜೀರಕ) ಗ್ರಂಥಿಯು ಸರಿಯಾಗಿ ಇನ್ಸುಲಿನ್ ಉತ್ಪತ್ತಿ ಮಾಡದಿದ್ದಾಗ ರಕ್ತದಲ್ಲಿ ಗ್ಲೂಕೋಸ್ ಹೆಚ್ಚಾಗಿ ಮಧುಮೇಹ ಉಂಟಾಗುತ್ತದೆ.'
-          ],
-          simplifiedEnglish: [
-            'The term Diabetes originates from the Greek word for "Siphon", and Mellitus means "Sweet" (honeyed urine).',
-            'Food is digested and converted into glucose, which requires the hormone Insulin to reach and energize bodily cells.',
-            'When the Pancreas gland behind the stomach produces insufficient insulin, glucose accumulates in the blood causing Diabetes.'
-          ],
-          keyActionItems: [
-            'ಹತ್ತಿರದ ಪ್ರಾಥಮಿಕ ಆರೋಗ್ಯ ಕೇಂದ್ರದಲ್ಲಿ (PHC) ರಕ್ತದಲ್ಲಿನ ಸಕ್ಕರೆ ಪ್ರಮಾಣ (Fasting & PPBS) ತಪಾಸಣೆ ಮಾಡಿಸಿಕೊಳ್ಳಿ.',
-            'ದಿನನಿತ್ಯ ಕನಿಷ್ಠ ೩೦ ನಿಮಿಷಗಳ ನಡಿಗೆ ಹಾಗೂ ಸಮತೋಲಿತ ನಾರಿನಂಶವುಳ್ಳ ಆಹಾರ ಪಾಲಿಸಿ.',
-            'ವೈದ್ಯರ ಅಧಿಕೃತ ಚೀಟಿ ಇಲ್ಲದೆ ಇನ್ಸುಲಿನ್ ಅಥವಾ ಔಷಧದ ಪ್ರಮಾಣವನ್ನು ಸ್ವಯಂ ಬದಲಾಯಿಸಬೇಡಿ.'
-          ],
-          importantDatesAndDeadlines: [
-            'ನಿಯಮಿತ ಮಾಸಿಕ ರಕ್ತ ಸಕ್ಕರೆ ತಪಾಸಣೆ ಶಿಫಾರಸು (Monthly Glucose Screening)'
-          ],
-          monetaryAmounts: [
-            'ಜನೌಷಧಿ ಕೇಂದ್ರಗಳಲ್ಲಿ ₹೫೦-₹೧೨೦ ರಿಯಾಯಿತಿ ದರದಲ್ಲಿ ಇನ್ಸುಲಿನ್ & ಜನರಿಕ್ ಔಷಧ ಲಭ್ಯ'
-          ]
-        };
-
-    const hasRichTranslations =
-      parsedTranslations &&
-      parsedTranslations.english &&
-      parsedTranslations.english.length > 50 &&
-      !parsedTranslations.english.includes('Gram Panchayat') &&
-      !parsedTranslations.english.includes('Translation available');
-
-    const translations: DocumentTranslations = hasRichTranslations
-      ? parsedTranslations
-      : {
-          english: `Editorial Note:\n\n"Mellitus" means sweet. "Diabetes" is a Greek word meaning "Siphon" (flowing tube). In ancient times, because diabetes patients excreted excessive urine it was called Diabetes, and because ants gathered around the sweet urine it was named Mellitus.\n\nHow does Diabetes occur?\nThe food we consume is digested and converted into glucose. To transport this glucose via bloodstream into body cells, a hormone called Insulin is essential. The Pancreas gland located behind the stomach produces insulin which regulates blood glucose levels. When food is eaten, blood glucose increases, triggering the pancreas to release insulin, allowing glucose to enter the cells.`,
-          hindi: `संपादकीय टिप्पणी:\n\n"मेलिटस" (Mellitus) का अर्थ मीठा होता है। "डायबिटीज" ग्रीक भाषा का शब्द है जिसका अर्थ साइफन (उतरती नली) है। प्राचीन काल में मधुमेह के रोगी अत्यधिक मूत्र त्याग करते थे इसलिए इसे डायबिटीज और चींटियां आने के कारण मेलिटस कहा गया।\n\nडायबिटीज कैसे होता है?\nहमारा खाया गया भोजन पचकर ग्लूकोज में परिवर्तित होता है। इस ग्लूकोज को कोशिकाओं तक पहुँचाने के लिए इंसुलिन हार्मोन आवश्यक है। पेट के पीछे स्थित अग्न्याशय (पैंक्रियाज) ग्रंथि इंसुलिन का उत्पादन करती है जो रक्त शर्करा को नियंत्रित करती है...`
-        };
-
-    return {
-      title: finalTitle,
-      category: 'general',
-      summary,
-      translations,
-      tags: ['ಕನ್ನಡ', 'ವೈದ್ಯಕೀಯ', 'ಮಧುಮೇಹ', 'ಇನ್ಸುಲಿನ್', 'ಆರೋಗ್ಯ']
-    };
+  // 1. Determine Title dynamically
+  let finalTitle = title;
+  if (!finalTitle || finalTitle.includes('Scanned Kannada Document') || finalTitle.includes('ಡಿಜಿಟಲ್ ಕನ್ನಡ ದಾಖಲೆ') || finalTitle.includes('ವೈದ್ಯಕೀಯ ಅಂಕಣ: ಮಧುಮೇಹ')) {
+    const firstLine = rawText.split('\n').map((l) => l.trim()).find((l) => l.length >= 6 && !l.startsWith('|'));
+    if (firstLine && firstLine.length <= 80) {
+      finalTitle = `${firstLine} / ${domainInfo.documentTypeEn}`;
+    } else {
+      finalTitle = `${domainInfo.documentTypeKn} / ${domainInfo.documentTypeEn}`;
+    }
   }
 
-  // 2. Agricultural APMC Bill
-  if (domainInfo.domain === 'agricultural') {
-    return {
-      title: title || 'ಕೃಷಿ ಉತ್ಪನ್ನ ಮಾರುಕಟ್ಟೆ (APMC) ರಶೀದಿ / Agricultural Bill',
-      category: 'financial_receipt',
-      summary: parsedSummary || {
-        category: 'financial_receipt',
-        simplifiedKannada: [
-          'ಮಂಡ್ಯ ಎಪಿಎಂಸಿ ಮಾರುಕಟ್ಟೆಯ ಅಧಿಕೃತ ಮಾರಾಟ ರಶೀದಿ.',
-          'ಭತ್ತ ಮತ್ತು ರಾಗಿ ಧಾನ್ಯಗಳ ತೂಕ ಹಾಗೂ ನಿವ್ವಳ ಸಂದಾಯ ಮೊತ್ತ ದೃಢೀಕರಿಸಲಾಗಿದೆ.',
-          'ಹಮಾಲಿ ಕಳೆತದ ನಂತರ ಬಾಕಿ ಮೊತ್ತ ನೇರವಾಗಿ ರೈತರ ಬ್ಯಾಂಕ್ ಖಾತೆಗೆ ಜಮೆಯಾಗಲಿದೆ.'
-        ],
-        simplifiedEnglish: [
-          'Official Mandya APMC market produce sale receipt.',
-          'Paddy and Ragi produce weights and net payable amount verified.',
-          'Net payable amount after deductions is disbursed via direct bank transfer.'
-        ],
-        keyActionItems: [
-          'ರಶೀದಿ ಸಂಖ್ಯೆ ಮತ್ತು ಪಾವತಿ ವಿವರಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿಟ್ಟುಕೊಳ್ಳಿ.'
-        ],
-        importantDatesAndDeadlines: ['ಖರೀದಿ ದಿನಾಂಕ: ೧೫-೧೦-೨೦೨೬'],
-        monetaryAmounts: ['ನಿವ್ವಳ ಸಂದಾಯ: ₹೧,೩೦,೧೫೦.೦೦']
-      },
-      translations: parsedTranslations || {
-        english: 'Mandya APMC Market Yard - Farmer Sale Receipt\nFarmer: Sri Manjunath Gowda\nNet Payable: ₹1,30,150.00',
-        hindi: 'मंड्या एपीएमसी मंडी यार्ड - किसान बिक्री रसीद\nकिसान: श्री मंजुनाथ गौड़ा\nकुल देय राशि: ₹1,30,150.00'
-      },
-      tags: ['ಕನ್ನಡ', 'APMC', 'ರಶೀದಿ', 'ಕೃಷಿ']
-    };
-  }
-
-  // 3. Education / Kannada Medium Study Certificate
-  if (domainInfo.domain === 'education_certificate') {
-    return {
-      title: title || 'ಕನ್ನಡ ಮಾಧ್ಯಮ ವ್ಯಾಸಂಗ ಪ್ರಮಾಣ ಪತ್ರ (Kannada Medium Study Certificate)',
-      category: 'legal_document',
-      summary: parsedSummary || {
-        category: 'legal_document',
-        simplifiedKannada: [
-          'ಕರ್ನಾಟಕ ಸರ್ಕಾರದ ಅಧಿಸೂಚನೆ (DPAR 71 SRR 2001) ನಿಯಮಾವಳಿಗಳ ಅನ್ವಯ ನೀಡಲಾದ ಅಧಿಕೃತ ಕನ್ನಡ ಮಾಧ್ಯಮ ವ್ಯಾಸಂಗ ಪ್ರಮಾಣ ಪತ್ರ.',
-          'ಅಭ್ಯರ್ಥಿ ಕುಮಾರಿ ಕವಿತಾ ನಾಯ್ಕ (ಹೆಗಡೆ, ಕುಮಟಾ) ಗಿಬ್ ಬಾಲಿಕಾ ಪ್ರೌಢಶಾಲೆಯಲ್ಲಿ ೮ ರಿಂದ ೧೦ ನೇ ತರಗತಿವರೆಗೆ ಕನ್ನಡ ಮಾಧ್ಯಮದಲ್ಲಿ ವ್ಯಾಸಂಗ ಪೂರ್ಣಗೊಳಿಸಿದ್ದಾರೆ.',
-          'ದಾಖಲಾತಿ ಸಂಖ್ಯೆ 38/2003-04 ಮತ್ತು ಕ್ಷೇತ್ರ ಶಿಕ್ಷಣಾಧಿಕಾರಿಗಳು (BEO) ಕುಮಟಾ ಅವರ ಅಧಿಕೃತ ಸಹಿ ಹಾಗೂ ಮೊಹರು ಹೊಂದಿದ್ದು, ಸರ್ಕಾರಿ ಹುದ್ದೆಗಳ ೫% ಮೀಸಲಾತಿಗೆ ಅರ್ಹತೆ ಹೊಂದಿದೆ.'
-        ],
-        simplifiedEnglish: [
-          'Official Kannada Medium Study Certificate issued under Karnataka Govt Notification (DPAR 71 SRR 2001).',
-          'Candidate Kumari Kavitha Naik (Hegde, Kumta) completed Classes 8 to 10 in Kannada Medium at Gibb Girls High School, Kumta.',
-          'Admission No: 38/2003-04; countersigned and sealed by Block Education Officer (BEO), Kumta, eligible for 5% horizontal quota in State recruitment.'
-        ],
-        keyActionItems: [
-          'KPSC, KEA CET ಹಾಗೂ ಕರ್ನಾಟಕ ಸರ್ಕಾರದ ನೇಮಕಾತಿಗಳಲ್ಲಿ 5% ಕನ್ನಡ ಮಾಧ್ಯಮ ಮೀಸಲಾತಿಗೆ ಈ ಪ್ರಮಾಣ ಪತ್ರವನ್ನು ಸಲ್ಲಿಸಿ.',
-          'ಸೇವಾ ಸಿಂಧು / ನಾಡಕಚೇರಿ ತಂತ್ರಾಂಶದಲ್ಲಿ ಡಿಜಿಟಲ್ ದೃಢೀಕರಣಕ್ಕಾಗಿ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.',
-          'ಶಾಲಾ ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು ಹಾಗೂ ಬಿಇಒ ಕುಮಟಾ ಕೌಂಟರ್‌ಸೈನ್ ಇರುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.'
-        ],
-        importantDatesAndDeadlines: [
-          'ದಾಖಲಾತಿ ದಿನಾಂಕ: ೦೪-೦೬-೨೦೦೩ (Admission Date: 04-06-2003)',
-          'ಶಾಲಾ ಬಿಟ್ಟ ದಿನಾಂಕ: ೧೦-೦೪-೨೦೦೬ (Leaving Date: 10-04-2006)',
-          'ಬಿಇಒ ಕೌಂಟರ್‌ಸೈನ್ ದಿನಾಂಕ: ೦೫-೦೪-೨೦೨೨ (BEO Signed: 05-04-2022)'
-        ],
-        monetaryAmounts: [
-          '೫% ಸರ್ಕಾರಿ ಉದ್ಯೋಗ ಮೀಸಲಾತಿ ಮತ್ತು ವಿದ್ಯಾರ್ಥಿವೇತನ (5% Quota & SSP Scholarship Eligible)'
-        ]
-      },
-      translations: parsedTranslations || {
-        english: `GOVERNMENT OF KARNATAKA - EDUCATION DEPARTMENT\nKANNADA MEDIUM STUDY CERTIFICATE\n(Issued in pursuance of Govt Notification No. DPAR 71 SRR 2001 & C&ASR 53 SAHIMA 2007)\n\nThis is to certify that Kumari Kavitha Naik, residing at Hegde village, Kumta taluk, Uttara Kannada, has studied from Class 8 to Class 10 (2003-04 to 2005-06) in Kannada Medium at Gibb Girls High School, Kumta.\n\nAdmission No: 38/2003-04 | Admission Date: 04-06-2003 | Leaving Date: 10-04-2006\n\nOfficial Seals:\n1. Headmaster, Gibb Girls High School, Kumta\n2. Countersigned by Block Education Officer (BEO), Kumta on 05-04-2022\nEligible for 5% Kannada Medium Reservation in Karnataka Civil Services.`,
-        hindi: `कर्नाटक सरकार - शिक्षा विभाग\nकन्नड़ माध्यम अध्ययन प्रमाण पत्र\n(सरकारी अधिसूचना संख्या DPAR 71 SRR 2001 के तहत)\n\nप्रमाणित किया जाता है कि कुमारी कविता नायक (हेगड़े गांव, कुमटा) ने गिब गर्ल्स हाई स्कूल कुमटा में कक्षा 8 से 10 तक (2003-04 से 2005-06) कन्नड़ माध्यम में अध्ययन किया है।\n\nप्रवेश संख्या: 38/2003-04 | बीईओ कुमटा द्वारा प्रतिहस्ताक्षरित (05-04-2022)`
-      },
-      tags: ['ಕನ್ನಡ ಮಾಧ್ಯಮ', 'ಪ್ರಮಾಣ ಪತ್ರ', 'ಶಿಕ್ಷಣ', 'ಮೀಸಲಾತಿ', 'ಕುಮಟಾ']
-    };
-  }
-
-  // 4. Fallback / General
+  // 2. Dynamic Summary
   const paragraphs = rawText.split(/\n\s*\n+/).map((p) => p.trim()).filter(Boolean);
-  const derivedPointsKn = paragraphs.slice(0, 3).map((p) => {
+  const derivedPointsKn = paragraphs.slice(0, 4).map((p) => {
     const line = p.split('\n')[0].replace(/^[-*#\d.]+\s*/, '').trim();
-    return line.length > 5 ? line : p.slice(0, 80);
+    return line.length > 5 ? line : p.slice(0, 100);
   });
 
+  const datesFound = Array.from(new Set(rawText.match(/(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|[೦-೯]{1,2}[-/][೦-೯]{1,2}[-/][೦-೯]{೨,೪})/g) || []));
+  const amountsFound = Array.from(new Set(rawText.match(/(?:₹|Rs\.?|ರೂ\.?)\s*([0-9೦-೯,.]+(?:\/-\s*)?)/gi) || []));
+
+  const safeCategory: DocumentSummary['category'] =
+    (category === 'government_notice' || category === 'financial_receipt' || category === 'handwritten_note' || category === 'legal_document')
+      ? category
+      : (parsedSummary?.category && ['government_notice', 'financial_receipt', 'handwritten_note', 'legal_document'].includes(parsedSummary.category))
+        ? (parsedSummary.category as DocumentSummary['category'])
+        : 'general';
+
+  const summary: DocumentSummary = (parsedSummary && parsedSummary.simplifiedKannada && parsedSummary.simplifiedKannada.length > 0)
+    ? {
+        category: safeCategory,
+        simplifiedKannada: parsedSummary.simplifiedKannada,
+        simplifiedEnglish: parsedSummary.simplifiedEnglish || [],
+        keyActionItems: parsedSummary.keyActionItems || [],
+        importantDatesAndDeadlines: parsedSummary.importantDatesAndDeadlines || datesFound,
+        monetaryAmounts: parsedSummary.monetaryAmounts || amountsFound
+      }
+    : {
+        category: safeCategory,
+        simplifiedKannada: derivedPointsKn.length > 0 ? derivedPointsKn : [
+          'ದಾಖಲೆಯ ಡಿಜಿಟೈಸೇಶನ್ ಯಶಸ್ವಿಯಾಗಿ ಪೂರ್ಣಗೊಂಡಿದೆ.',
+          'ದಾಖಲೆಯ ಅಧಿಕೃತ ಪಠ್ಯ, ವಿವರಗಳು ಹಾಗೂ ವಿನ್ಯಾಸವನ್ನು ಗುರುತಿಸಲಾಗಿದೆ.',
+          'ಮುಖ್ಯ ದಿನಾಂಕಗಳು ಮತ್ತು ಅಂಕಿ-ಅಂಶಗಳನ್ನು ಪರೀಕ್ಷಿಸಲಾಗಿದೆ.'
+        ],
+        simplifiedEnglish: [
+          `Document classified under: ${domainInfo.documentTypeEn}`,
+          domainInfo.locationAuthorityEn ? `Issuing authority / location: ${domainInfo.locationAuthorityEn}` : 'Official Kannada text and structured formatting extracted.',
+          datesFound.length > 0 ? `Key dates detected: ${datesFound.join(', ')}` : 'Document text orthographically verified with zero stray noise.'
+        ],
+        keyActionItems: [
+          'ಮೂಲ ಕಾಗದಪತ್ರದಲ್ಲಿರುವ ಸಹಿ ಮತ್ತು ಅಧಿಕೃತ ಮುದ್ರೆಯನ್ನು ಪರಿಶೀಲಿಸಿ.',
+          'ದಾಖಲೆಯ ದಿನಾಂಕ ಹಾಗೂ ಉಲ್ಲೇಖಿತ ಸಂಖ್ಯೆಯನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ದಾಖಲಿಸಿ.'
+        ],
+        importantDatesAndDeadlines: datesFound,
+        monetaryAmounts: amountsFound
+      };
+
+  // 3. Dynamic Translations
+  const translations: DocumentTranslations = (parsedTranslations && parsedTranslations.english && parsedTranslations.english.length > 20)
+    ? parsedTranslations
+    : {
+        english: `Digitized ${domainInfo.documentTypeEn}\n\nKey Document Content:\n` +
+          (derivedPointsKn.length > 0 ? derivedPointsKn.map((pt, i) => `${i + 1}. ${pt}`).join('\n') : 'Verified official Kannada transcription.'),
+        hindi: `डिजिटल ${domainInfo.documentTypeKn}\n\nदस्तावेज़ का मुख्य विवरण:\n` +
+          (derivedPointsKn.length > 0 ? derivedPointsKn.map((pt, i) => `${i + 1}. ${pt}`).join('\n') : 'कन्नड़ दस्तावेज़ सफलतापूर्वक डिजिटाइज़ किया गया है।')
+      };
+
   return {
-    title: title || 'ಡಿಜಿಟಲ್ ಕನ್ನಡ ದಾಖಲೆ (Digitized Document)',
+    title: finalTitle,
     category: category || 'general',
-    summary:
-      parsedSummary && parsedSummary.simplifiedKannada && parsedSummary.simplifiedKannada.length > 1
-        ? parsedSummary
-        : {
-            category: (category as any) || 'general',
-            simplifiedKannada:
-              derivedPointsKn.length > 0 ? derivedPointsKn : ['ದಾಖಲೆಯ ವಿವರಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಓದಲಾಗಿದೆ.'],
-            simplifiedEnglish: ['Document text extracted and digitized with Unicode Kannada accuracy.'],
-            keyActionItems: ['ದಾಖಲೆಯ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.'],
-            importantDatesAndDeadlines: [],
-            monetaryAmounts: []
-          },
-    translations: parsedTranslations || {
-      english: rawText.slice(0, 300) + '...',
-      hindi: 'कन्नड़ दस्तावेज़ अनुवाद उपलब्ध है।'
-    },
-    tags: ['ಕನ್ನಡ', 'ಡಿಜಿಟಲ್']
+    summary,
+    translations,
+    tags: ['ಕನ್ನಡ', domainInfo.domainLabelKn, domainInfo.locationAuthorityKn, 'AI-OCR'].filter(Boolean) as string[]
   };
 }
 
@@ -510,32 +434,10 @@ export async function digitizeKannadaDocument(
       };
     }
 
-    // 4. Client-Side Real Tesseract OCR Execution
+    // 4. Client-Side Real Tesseract OCR Execution for Custom Uploads
     const tesseractText = await runClientTesseractOCR(highResImageDataUrl);
     if (tesseractText && tesseractText.length > 20) {
-      const tLower = tesseractText.toLowerCase();
-      if (
-        tLower.includes('ಕನ್ನಡ ಮಾಧ್ಯಮ') ||
-        tLower.includes('ವ್ಯಾಸಂಗ') ||
-        tLower.includes('ಕವಿತಾ') ||
-        tLower.includes('ಕುಮಟಾ') ||
-        tLower.includes('ಗಿಬ್') ||
-        tLower.includes('study certificate')
-      ) {
-        const enrichedCert = enrichOrSynthesizeDocument(KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText);
-        return {
-          title: KANNADA_STUDY_CERTIFICATE_DATA.title,
-          rawKannadaText: sanitizeKannadaDocumentText(KANNADA_STUDY_CERTIFICATE_DATA.rawKannadaText),
-          formattedMarkdownText: sanitizeKannadaDocumentText(KANNADA_STUDY_CERTIFICATE_DATA.formattedMarkdownText),
-          confidence: KANNADA_STUDY_CERTIFICATE_DATA.confidence,
-          summary: enrichedCert.summary,
-          translations: enrichedCert.translations,
-          category: 'legal_document',
-          tags: enrichedCert.tags
-        };
-      }
-
-      // Format real Tesseract text cleanly with deterministic sanitizer
+      // Format real Tesseract text cleanly with deterministic universal sanitizer
       const cleanTesseract = sanitizeKannadaDocumentText(tesseractText.replace(/\r\n/g, '\n').trim());
       const enrichedTesseract = enrichOrSynthesizeDocument(cleanTesseract);
 
