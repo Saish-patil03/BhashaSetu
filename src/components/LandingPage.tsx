@@ -47,14 +47,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           1. HERO SECTION (Centered Minimalist with Subtle Grid Accent)
           ========================================================================= */}
       <section className="relative text-center pt-4 sm:pt-10 pb-4 max-w-4xl mx-auto space-y-6">
-        {/* Top Micro-Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200/90 text-[11px] sm:text-xs font-medium text-zinc-700 shadow-2xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>
-            {isKn
-              ? 'IndicOCR v2.6 • ಯುನಿಕೋಡ್ 15.0 ಕನ್ನಡ • 100% ಸಾಧನ ಮಟ್ಟದ ಗೌಪ್ಯತೆ'
-              : 'IndicOCR v2.6 • Unicode 15.0 Kannada • 100% Client-Side Privacy'}
-          </span>
+        {/* Top Hackathon & Technology Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/90 text-[11px] sm:text-xs font-semibold text-amber-900 shadow-2xs">
+            <span>🏆</span>
+            <span>
+              {isKn
+                ? 'ಕನ್ನಡ ಡಿಜಿಟಲ್ ಇನ್ನೋವೇಶನ್ ಹ್ಯಾಕಥಾನ್ ೨೦೨೬ • NIE ಮೈಸೂರು & HackerRank • ಪ್ರಾಬ್ಲಮ್ ಸ್ಟೇಟ್‌ಮೆಂಟ್ ೫'
+                : 'Kannada Digital Innovation Hackathon 2026 • NIE Mysuru & HackerRank • Track 05: Kannada Text Digitization'}
+            </span>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200/90 text-[11px] sm:text-xs font-medium text-zinc-700 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>
+              {isKn
+                ? 'IndicOCR v2.6 • ಯುನಿಕೋಡ್ 15.0 ಕನ್ನಡ • 100% ಸಾಧನ ಮಟ್ಟದ ಗೌಪ್ಯತೆ'
+                : 'IndicOCR v2.6 • Unicode 15.0 Kannada • 100% Client-Side Privacy'}
+            </span>
+          </div>
         </div>
 
         {/* Main Headline */}

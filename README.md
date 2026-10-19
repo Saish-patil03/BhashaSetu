@@ -5,6 +5,14 @@
 [![Live Web Application](https://img.shields.io/badge/Live%20Demo-Vercel-success?style=for-the-badge&logo=vercel)](https://bhasha-setu-three.vercel.app)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Saish--patil03%2FBhashaSetu-blue?style=for-the-badge&logo=github)](https://github.com/Saish-patil03/BhashaSetu)
 [![Kannada Orthography](https://img.shields.io/badge/Kannada%20Accuracy-Near--100%25%20NFC-orange?style=for-the-badge)](https://bhasha-setu-three.vercel.app)
+[![Hackathon](https://img.shields.io/badge/Hackathon-HackerRank%20%7C%20NIE%20Mysuru-purple?style=for-the-badge)](https://unstop.com)
+[![Problem Statement](https://img.shields.io/badge/Track-Problem%20Statement%2005-blue?style=for-the-badge)](https://unstop.com)
+
+> 🏆 **Event:** Kannada Digital Innovation Hackathon 2026  
+> 🏛️ **Organized by:** HackerRank Campus Crew, The National Institute of Engineering (NIE), Mysuru  
+> 🎯 **Selected Track:** **Problem Statement 05: Document AI & OCR — Kannada Text Digitization**  
+> 🔗 **Live Working Project:** [bhasha-setu-three.vercel.app](https://bhasha-setu-three.vercel.app)  
+> 💻 **GitHub Repository:** [github.com/Saish-patil03/BhashaSetu](https://github.com/Saish-patil03/BhashaSetu)
 
 ---
 

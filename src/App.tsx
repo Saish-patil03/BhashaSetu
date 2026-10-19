@@ -343,11 +343,14 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200/70 bg-white/50 py-4 text-center text-xs text-zinc-400 font-medium">
-        <p className="font-kannada">
+      <footer className="border-t border-zinc-200/70 bg-white/50 py-4 text-center text-xs text-zinc-500 font-medium space-y-1">
+        <p className="font-kannada font-semibold text-zinc-700">
           {lang === 'kn'
             ? 'ಭಾಷಾಸೇತು (BhashaSetu) • ಕನ್ನಡ ದಾಖಲೆ AI ಮತ್ತು OCR'
-            : 'BhashaSetu • Kannada Document AI & OCR'}
+            : 'BhashaSetu • Universal Kannada Document AI & Vision Intelligence'}
+        </p>
+        <p className="text-[11px] text-zinc-400">
+          Kannada Digital Innovation Hackathon 2026 | NIE Mysuru & HackerRank Campus Crew • Problem Statement 05: Kannada Text Digitization
         </p>
       </footer>
 
